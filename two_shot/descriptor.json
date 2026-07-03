@@ -1,6 +1,6 @@
 {
     "name": "samseg_long",
-    "description": "FreeSurfer longitudinal chain via niwrap: one script runs either mri_robust_template (BIDS T1w -> unbiased template) or run_samseg_long (template-space images -> longitudinal segmentation), selected by the TOOL argument. One call per participant; sessions auto-discovered.",
+    "description": "SAMSEG longitudinal segmentation via niwrap: one script runs either mri_robust_template (BIDS T1w -> unbiased template) or run_samseg_long (template-space images -> longitudinal segmentation), selected by the TOOL argument. One call per participant; sessions auto-discovered.",
     "tool-version": "1.0.0",
     "schema-version": "0.5",
     "command-line": "python [SCRIPT_PATH] [TOOL] [INPUT_DIR] [OUTPUT_DIR] [PARTICIPANT_ID]",

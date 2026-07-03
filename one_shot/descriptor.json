@@ -1,6 +1,6 @@
 {
     "name": "samseg_long_onestep",
-    "description": "FreeSurfer longitudinal chain via niwrap, one unified step per participant: runs mri_robust_template (BIDS T1w -> unbiased template) then run_samseg_long (template-space images -> longitudinal segmentation). Sessions auto-discovered.",
+    "description": "SAMSEG longitudinal segmentation via niwrap, one unified step per participant: runs mri_robust_template (BIDS T1w -> unbiased template) then run_samseg_long (template-space images -> longitudinal segmentation). Sessions auto-discovered.",
     "tool-version": "1.0.0",
     "schema-version": "0.5",
     "command-line": "python [SCRIPT_PATH] [BIDS_DIR] [OUTPUT_DIR] [PARTICIPANT_ID]",

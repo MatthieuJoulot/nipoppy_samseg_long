@@ -43,10 +43,10 @@ nipoppy --version
 # 1b. The SAME python that runs nipoppy is >= 3.11  (hard requirement)
 python -c "import sys; assert sys.version_info[:2] >= (3,11), sys.version; print('py ok', sys.version.split()[0])"
 
-# 1c. niwrap + the freesurfer wrapper import in that python
+# 1c. niwrap and its tool-wrapper module import in that python
 python -c "import niwrap, freesurfer; print('niwrap ok')"
 
-# 1d. FreeSurfer tools are on PATH and FREESURFER_HOME is set
+# 1d. mri_robust_template / run_samseg_long commands are on PATH and FREESURFER_HOME is set
 which mri_robust_template run_samseg_long
 echo "FREESURFER_HOME=${FREESURFER_HOME:?FREESURFER_HOME is not set}"
 
@@ -57,10 +57,11 @@ python -c "import json; print(json.load(open('$DATASET/global_config.json'))['CO
 ls "$DATASET"/bids/sub-${PARTICIPANT#sub-}/ses-*/anat/*_T1w.nii.gz | wc -l
 ```
 
-> IMPORTANT: `nipoppy`, the `python` on PATH, `niwrap`, and FreeSurfer must all live in /
-> be reachable from the **same environment**, because the pipeline runs container-less and
-> the descriptor calls bare `python`. The simplest setup is a single Python ≥3.11 conda/venv
-> that has `nipoppy` + `requirements.txt` installed, with FreeSurfer sourced. Activate it now.
+> IMPORTANT: `nipoppy`, the `python` on PATH, `niwrap`, and the `mri_robust_template` /
+> `run_samseg_long` commands must all be reachable from the **same environment**, because
+> the pipeline runs container-less and the descriptor calls bare `python`. The simplest setup
+> is a single Python ≥3.11 conda/venv that has `nipoppy` + `requirements.txt` installed, with
+> those commands on `$PATH` and `FREESURFER_HOME` set. Activate it now.
 
 ---
 

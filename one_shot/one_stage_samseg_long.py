@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Single-step per-participant FreeSurfer longitudinal worker, via niwrap.
+"""Single-step per-participant SAMSEG longitudinal worker, via niwrap.
 
 Runs the whole chain for one participant, in sequence:
   1. mri_robust_template : BIDS T1w  -> unbiased template + per-session
@@ -14,8 +14,9 @@ Sessions are discovered from the BIDS tree and naturally ordered (ses-1a <
 ses-1b < ses-2). A participant with fewer than 2 sessions is skipped and logged
 (exit 0), since a longitudinal template/segmentation needs at least 2 timepoints.
 
-Run with the ``niwraps`` conda env (Python 3.11). FreeSurfer must be reachable
-the way the chosen niwrap runner expects (use_local -> on $PATH).
+Run with a Python 3.11 env that has niwrap installed. The mri_robust_template and
+run_samseg_long commands must be reachable the way the chosen niwrap runner
+expects (use_local -> on $PATH, with FREESURFER_HOME set for the SAMSEG atlases).
 """
 
 import os
@@ -107,7 +108,7 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
         for s in sessions
     ]
 
-    niwrap.use_local()  # run FreeSurfer tools from $PATH
+    niwrap.use_local()  # run the mri_robust_template / run_samseg_long tools from $PATH
 
     # --- Stage 1: mri_robust_template ------------------------------------ #
     print("=== Stage 1: mri_robust_template ===")

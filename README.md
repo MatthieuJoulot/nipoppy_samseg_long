@@ -1,8 +1,8 @@
 # nipoppy_samseg_long
 
-[Nipoppy](https://nipoppy.readthedocs.io) processing pipelines for the FreeSurfer
-**longitudinal** workflow, wrapping the FreeSurfer tools through
-[niwrap](https://github.com/styx-api/niwrap):
+[Nipoppy](https://nipoppy.readthedocs.io) processing pipelines for **SAMSEG
+longitudinal** segmentation, wrapping the `mri_robust_template` and
+`run_samseg_long` tools through [niwrap](https://github.com/styx-api/niwrap):
 
 1. **`mri_robust_template`** — builds an unbiased within-subject template from a
    participant's T1w images and resamples each session into that template space.
@@ -35,8 +35,9 @@ overview; the `instruction.md` files are the exact procedure.
 
 ## Requirements
 
-- **FreeSurfer** (7.x) installed, sourced, and on `$PATH` — the pipelines call
-  `mri_robust_template` / `run_samseg_long` directly (via niwrap `use_local`).
+- The **`mri_robust_template`** and **`run_samseg_long`** commands on `$PATH`, with
+  `FREESURFER_HOME` set — the pipelines call them directly (via niwrap `use_local`),
+  and SAMSEG reads its atlases from `$FREESURFER_HOME/average/samseg`.
 - **Python ≥ 3.11** — `niwrap_freesurfer` uses `typing.NotRequired`, which does
   not exist before 3.11.
 - **niwrap** and friends — `pip install -r requirements.txt`.
@@ -129,8 +130,8 @@ The trackers mark a participant complete when `sub-<ID>/samseg_long/tp*/seg.mgz`
   `OMP_NUM_THREADS=2` (unless already set) and `OPENBLAS_NUM_THREADS=1` before
   launching it. No action needed on your part.
 - **Repeated `--timepoint`.** niwrap's high-level `run_samseg_long` wrapper emits
-  a single `-t` for all inputs, which FreeSurfer rejects ("must provide more than
-  1 timepoint"). The worker builds the command with one `--timepoint` per session
+  a single `-t` for all inputs, which `run_samseg_long` rejects ("must provide more
+  than 1 timepoint"). The worker builds the command with one `--timepoint` per session
   itself, while still using niwrap's runner for execution/portability.
 - **Runtime.** SAMSEG longitudinal is slow (tens of minutes even for 2 sessions).
   For long jobs, launch detached (e.g. `setsid`/`nohup`) so a dropped shell
@@ -154,8 +155,8 @@ nipoppy_samseg_long/
 
 ## Credit
 
-Wraps FreeSurfer (`mri_robust_template`, `run_samseg_long`) via
+Wraps the `mri_robust_template` and `run_samseg_long` commands via
 [niwrap](https://github.com/styx-api/niwrap); packaged for
-[Nipoppy](https://nipoppy.readthedocs.io). Please cite FreeSurfer and the
-relevant method papers (Reuter et al. 2012 for the robust template; Puonti et
-al. 2016 / Cerri et al. for SAMSEG) when using these outputs.
+[Nipoppy](https://nipoppy.readthedocs.io). Please cite the relevant method papers
+(Reuter et al. 2012 for the robust template; Puonti et al. 2016 / Cerri et al.
+2021 for SAMSEG) when using these outputs.

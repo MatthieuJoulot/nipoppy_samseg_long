@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Unified per-participant worker for the FreeSurfer longitudinal chain, via niwrap.
+"""Unified per-participant worker for the SAMSEG longitudinal chain, via niwrap.
 
 ONE script, two tools selected by the first positional argument:
 
@@ -20,8 +20,9 @@ ordered with the same natural sort (numeric value first, then letter suffix:
 ses-1a < ses-1b < ses-2), participant id tolerant of the ``sub-`` prefix, and a
 participant with fewer than 2 timepoints is skipped and logged (exit 0).
 
-Run with the ``niwraps`` conda env (Python 3.11). FreeSurfer must be reachable
-the way the chosen niwrap runner expects (use_local -> on $PATH).
+Run with a Python 3.11 env that has niwrap installed. The mri_robust_template and
+run_samseg_long commands must be reachable the way the chosen niwrap runner
+expects (use_local -> on $PATH, with FREESURFER_HOME set for the SAMSEG atlases).
 """
 
 import os
