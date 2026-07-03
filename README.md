@@ -160,6 +160,18 @@ nipoppy_samseg_long/
     └── instruction.md
 ```
 
+## Tests
+
+Unit tests cover the pure logic (session discovery, natural sorting, filename
+conventions) and the two key regression guards (one `--timepoint` per timepoint,
+and the OpenBLAS/OMP thread cap). They stub the niwrap stack, so they need neither
+niwrap nor FreeSurfer — only `pytest`:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ## Credit
 
 Wraps the `mri_robust_template` and `run_samseg_long` commands via

@@ -1,0 +1,122 @@
+"""Tests for one_shot/one_stage_samseg_long.py (single-step worker)."""
+
+import os
+
+import pytest
+
+
+# --------------------------------------------------------------------------- #
+# natural_key                                                                  #
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "labels, expected",
+    [
+        (["10", "2", "1"], ["1", "2", "10"]),                 # numeric, not lexicographic
+        (["2", "1a", "1b"], ["1a", "1b", "2"]),               # numeric prefix then letter
+        (["m12", "m00", "m06"], ["m00", "m06", "m12"]),       # letter-leading + embedded number
+        (["followup2", "baseline", "followup"],
+         ["baseline", "followup", "followup2"]),              # word labels
+        (["m06", "2", "1a"], ["1a", "2", "m06"]),             # MIXED leading types must not crash
+        (["baseline", "2", "1"], ["1", "2", "baseline"]),     # mixed: numbers before words
+        (["010", "001", "002"], ["001", "002", "010"]),       # zero-padded compares numerically
+    ],
+)
+def test_natural_key_sorting(one_stage, labels, expected):
+    assert sorted(labels, key=one_stage.natural_key) == expected
+
+
+# --------------------------------------------------------------------------- #
+# bids_subject                                                                 #
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "given, expected",
+    [
+        ("MIRIAD188", "sub-MIRIAD188"),
+        ("sub-MIRIAD188", "sub-MIRIAD188"),
+        ("01", "sub-01"),
+    ],
+)
+def test_bids_subject_prefix_tolerance(one_stage, given, expected):
+    assert one_stage.bids_subject(given) == expected
+
+
+# --------------------------------------------------------------------------- #
+# discover_bids_sessions                                                       #
+# --------------------------------------------------------------------------- #
+def test_discover_bids_sessions_sorted(one_stage, make_bids):
+    bids = make_bids("X", ["2", "1b", "1a"])           # created out of order
+    assert one_stage.discover_bids_sessions(bids, "sub-X") == ["1a", "1b", "2"]
+
+
+def test_discover_bids_sessions_ignores_other_subjects(one_stage, make_bids):
+    bids = make_bids("X", ["1a", "1b"])
+    make_bids("Y", ["1a", "1b", "1c"], root_name="bids")  # same tree, different subject
+    assert one_stage.discover_bids_sessions(bids, "sub-X") == ["1a", "1b"]
+
+
+def test_discover_bids_sessions_missing_dir_is_empty(one_stage, tmp_path):
+    assert one_stage.discover_bids_sessions(tmp_path / "nope", "sub-X") == []
+
+
+# --------------------------------------------------------------------------- #
+# main() flow (with the fake niwrap stack recording calls)                     #
+# --------------------------------------------------------------------------- #
+def test_main_builds_expected_names_and_command(one_stage, make_bids, tmp_path):
+    bids = make_bids("X", ["1a", "1b"])
+    out = tmp_path / "out"
+
+    one_stage.main(str(bids), str(out), "sub-X")
+
+    rec = one_stage._record
+
+    # Stage 1: mri_robust_template called once with the expected naming
+    assert len(rec["mrt_calls"]) == 1
+    kw = rec["mrt_calls"][0]
+    assert kw["satit"] is True
+    assert [os.path.basename(p) for p in kw["mov"]] == [
+        "sub-X_ses-1a_T1w.nii.gz",
+        "sub-X_ses-1b_T1w.nii.gz",
+    ]
+    assert os.path.basename(kw["template"]) == "sub-X_longTemplate1a.1b.mgz"
+    assert [os.path.basename(p) for p in kw["mapmov"]] == [
+        "sub-X_ses-1a_space-longTemplate1a.1b_T1w.nii.gz",
+        "sub-X_ses-1b_space-longTemplate1a.1b_T1w.nii.gz",
+    ]
+    assert [os.path.basename(p) for p in kw["lta"]] == [
+        "sub-X_ses-1a_from-native_to-space-longTemplate1a.1b_xfm.lta",
+        "sub-X_ses-1b_from-native_to-space-longTemplate1a.1b_xfm.lta",
+    ]
+
+    # Stage 2: run_samseg_long command with ONE --timepoint per registered image
+    cargs = rec["cargs"]
+    assert cargs is not None
+    assert cargs[0] == "run_samseg_long"
+    assert cargs.count("--timepoint") == 2
+    tp_files = [cargs[i + 1] for i, a in enumerate(cargs) if a == "--timepoint"]
+    assert tp_files == kw["mapmov"]          # timepoints are the stage-1 registered images
+    assert "--save-warp" in cargs and "--save-mesh" in cargs and "--save-posteriors" in cargs
+    out_idx = cargs.index("--output") + 1
+    assert cargs[out_idx].endswith(f"sub-X{os.sep}samseg_long{os.sep}")
+
+
+def test_main_caps_threads_before_samseg(one_stage, make_bids, tmp_path):
+    bids = make_bids("X", ["1a", "1b"])
+    one_stage.main(str(bids), str(tmp_path / "out"), "sub-X")
+    assert os.environ["OPENBLAS_NUM_THREADS"] == "1"
+    assert os.environ["OMP_NUM_THREADS"] == "2"
+
+
+def test_main_respects_preset_omp(one_stage, make_bids, tmp_path, monkeypatch):
+    monkeypatch.setenv("OMP_NUM_THREADS", "4")
+    bids = make_bids("X", ["1a", "1b"])
+    one_stage.main(str(bids), str(tmp_path / "out"), "sub-X")
+    assert os.environ["OMP_NUM_THREADS"] == "4"      # not overridden
+    assert os.environ["OPENBLAS_NUM_THREADS"] == "1"
+
+
+@pytest.mark.parametrize("sessions", [[], ["1a"]])
+def test_main_skips_when_fewer_than_two_sessions(one_stage, make_bids, tmp_path, sessions):
+    bids = make_bids("X", sessions) if sessions else (tmp_path / "bids")
+    one_stage.main(str(bids), str(tmp_path / "out"), "sub-X")
+    assert one_stage._record["mrt_calls"] == []      # tools never invoked
+    assert one_stage._record["cargs"] is None
