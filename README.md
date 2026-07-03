@@ -1,0 +1,161 @@
+# nipoppy_samseg_long
+
+[Nipoppy](https://nipoppy.readthedocs.io) processing pipelines for the FreeSurfer
+**longitudinal** workflow, wrapping the FreeSurfer tools through
+[niwrap](https://github.com/styx-api/niwrap):
+
+1. **`mri_robust_template`** — builds an unbiased within-subject template from a
+   participant's T1w images and resamples each session into that template space.
+2. **`run_samseg_long`** — runs SAMSEG longitudinal segmentation on those
+   template-space images.
+
+Everything runs **once per participant**; the sessions are discovered
+automatically from the BIDS tree, so no per-subject TSV or manual session list
+is needed.
+
+## Two flavours
+
+The same workflow is packaged two ways — pick whichever fits how you like to run
+things:
+
+| Directory   | Nipoppy pipeline (`NAME`) | Steps | Worker script | When to use |
+|-------------|---------------------------|-------|---------------|-------------|
+| [`one_shot/`](one_shot) | `samseg_long_onestep` | 1 | `one_stage_samseg_long.py` | Simplest: one `nipoppy process` call runs both tools back-to-back per participant. |
+| [`two_shot/`](two_shot) | `samseg_long` | 2 (`robust_template`, `samseg_long`) | `two_stage_samseg_long.py` | Run/track the template and the segmentation as separate steps (e.g. inspect templates before segmenting, or parallelise differently). |
+
+Both produce identical outputs and share the same fixes (see [Notes](#notes)).
+Both are validated end-to-end on real data (`nipoppy process` +
+`nipoppy track-processing`, both **SUCCESS**).
+
+Each folder ships a precise, step-by-step runbook —
+[`one_shot/instruction.md`](one_shot/instruction.md) and
+[`two_shot/instruction.md`](two_shot/instruction.md) — that can be followed by hand
+or fed to an LLM/agent to drive the processing end to end. The sections below are the
+overview; the `instruction.md` files are the exact procedure.
+
+## Requirements
+
+- **FreeSurfer** (7.x) installed, sourced, and on `$PATH` — the pipelines call
+  `mri_robust_template` / `run_samseg_long` directly (via niwrap `use_local`).
+- **Python ≥ 3.11** — `niwrap_freesurfer` uses `typing.NotRequired`, which does
+  not exist before 3.11.
+- **niwrap** and friends — `pip install -r requirements.txt`.
+- **nipoppy** ≥ 0.4 (tested with 0.4.6).
+
+> [!IMPORTANT]
+> These pipelines run **container-less**: nipoppy executes `python …` directly
+> on the host. So `python` must resolve to a **Python ≥ 3.11** interpreter that
+> has the `requirements.txt` packages installed — i.e. **run `nipoppy` itself
+> from that environment**. If your `nipoppy` lives in a Python 3.10 env, either
+> create a 3.11 env that has both `nipoppy` and the requirements, or edit the
+> `command-line` in `descriptor.json` to point at a specific interpreter, e.g.
+> `/path/to/py311/bin/python [SCRIPT_PATH] …`.
+
+## Install
+
+```bash
+# 1. Install the Python dependencies into the env you run nipoppy from (Py >=3.11)
+pip install -r requirements.txt
+
+# 2. Make sure your nipoppy dataset runs container-less: in <dataset>/global_config.json
+#      "CONTAINER_CONFIG": { "COMMAND": null, ... }
+
+# 3. Install whichever pipeline you want into your nipoppy dataset
+nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/one_shot
+# or
+nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/two_shot
+```
+
+## Run
+
+### one_shot — single step
+```bash
+nipoppy process --dataset <dataset> \
+  --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
+  --participant-id <ID>          # optional; omit to run all participants
+
+nipoppy track-processing --dataset <dataset> \
+  --pipeline samseg_long_onestep --pipeline-version 1.0.0
+```
+
+### two_shot — two steps (run in order)
+```bash
+# step 1: build the templates
+nipoppy process --dataset <dataset> \
+  --pipeline samseg_long --pipeline-version 1.0.0 \
+  --pipeline-step robust_template --participant-id <ID>
+
+# step 2: longitudinal segmentation (reads step 1's output)
+nipoppy process --dataset <dataset> \
+  --pipeline samseg_long --pipeline-version 1.0.0 \
+  --pipeline-step samseg_long --participant-id <ID>
+
+nipoppy track-processing --dataset <dataset> \
+  --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step robust_template
+nipoppy track-processing --dataset <dataset> \
+  --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step samseg_long
+```
+
+## Inputs & outputs
+
+**Input:** a BIDS dataset with anatomical T1w images
+`sub-<ID>/ses-<S>/anat/sub-<ID>_ses-<S>_T1w.nii.gz`.
+
+Sessions are discovered by globbing and **naturally sorted** (numeric first, then
+letter suffix: `ses-1a < ses-1b < ses-2`). A participant with fewer than **2**
+sessions is **skipped and logged** (a longitudinal template needs ≥2 timepoints).
+
+**Output** (under the pipeline's output dir, per participant `sub-<ID>/`):
+
+```
+sub-<ID>/
+  sub-<ID>_longTemplate<S1.S2...>.mgz                              # unbiased template
+  sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii.gz         # registered image (per session)
+  sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta  # transform (per session)
+  samseg_long/
+    base/            # SAMSEG base subject
+    latentAtlases/
+    tp001/ tp002/ …  # per-timepoint segmentation; tpNNN/seg.mgz is the completion marker
+```
+
+The trackers mark a participant complete when `sub-<ID>/samseg_long/tp*/seg.mgz`
+(and, for two_shot's first step, the template/registered/transform files) exist.
+
+## Notes
+
+- **Thread cap (segfault fix).** `run_samseg_long`'s sklearn/GMM step uses
+  OpenBLAS, which can **segfault** on many-core hosts
+  (`OpenBLAS warning: precompiled NUM_THREADS exceeded`). The worker sets
+  `OMP_NUM_THREADS=2` (unless already set) and `OPENBLAS_NUM_THREADS=1` before
+  launching it. No action needed on your part.
+- **Repeated `--timepoint`.** niwrap's high-level `run_samseg_long` wrapper emits
+  a single `-t` for all inputs, which FreeSurfer rejects ("must provide more than
+  1 timepoint"). The worker builds the command with one `--timepoint` per session
+  itself, while still using niwrap's runner for execution/portability.
+- **Runtime.** SAMSEG longitudinal is slow (tens of minutes even for 2 sessions).
+  For long jobs, launch detached (e.g. `setsid`/`nohup`) so a dropped shell
+  doesn't kill the run.
+
+## Layout
+
+```
+nipoppy_samseg_long/
+├── README.md
+├── requirements.txt          # shared by both flavours
+├── one_shot/                 # pipeline: samseg_long_onestep (1 step)
+│   ├── config.json  descriptor.json  invocation.json  tracker.json
+│   └── one_stage_samseg_long.py
+└── two_shot/                 # pipeline: samseg_long (2 steps)
+    ├── config.json  descriptor.json
+    ├── invocation_robust.json  invocation_samseg.json
+    ├── tracker_robust.json     tracker_samseg.json
+    └── two_stage_samseg_long.py
+```
+
+## Credit
+
+Wraps FreeSurfer (`mri_robust_template`, `run_samseg_long`) via
+[niwrap](https://github.com/styx-api/niwrap); packaged for
+[Nipoppy](https://nipoppy.readthedocs.io). Please cite FreeSurfer and the
+relevant method papers (Reuter et al. 2012 for the robust template; Puonti et
+al. 2016 / Cerri et al. for SAMSEG) when using these outputs.

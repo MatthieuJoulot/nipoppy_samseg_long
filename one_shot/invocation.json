@@ -1,0 +1,6 @@
+{
+    "script_path": "[[NIPOPPY_DPATH_PIPELINES]]/processing/samseg_long_onestep-1.0.0/one_stage_samseg_long.py",
+    "bids_dir": "[[NIPOPPY_DPATH_BIDS]]",
+    "output_dir": "[[NIPOPPY_DPATH_PIPELINE_OUTPUT]]",
+    "participant_id": "[[NIPOPPY_BIDS_PARTICIPANT_ID]]"
+}

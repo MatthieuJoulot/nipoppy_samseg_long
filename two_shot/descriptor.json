@@ -1,0 +1,56 @@
+{
+    "name": "samseg_long",
+    "description": "FreeSurfer longitudinal chain via niwrap: one script runs either mri_robust_template (BIDS T1w -> unbiased template) or run_samseg_long (template-space images -> longitudinal segmentation), selected by the TOOL argument. One call per participant; sessions auto-discovered.",
+    "tool-version": "1.0.0",
+    "schema-version": "0.5",
+    "command-line": "python [SCRIPT_PATH] [TOOL] [INPUT_DIR] [OUTPUT_DIR] [PARTICIPANT_ID]",
+    "inputs": [
+        {
+            "id": "script_path",
+            "name": "script_path",
+            "description": "Path to the script to run (shipped inside the pipeline bundle).",
+            "optional": false,
+            "type": "String",
+            "value-key": "[SCRIPT_PATH]"
+        },
+        {
+            "id": "tool",
+            "name": "tool",
+            "description": "Which tool to run: mri_robust_template or run_samseg_long.",
+            "optional": false,
+            "type": "String",
+            "value-choices": ["mri_robust_template", "run_samseg_long"],
+            "value-key": "[TOOL]"
+        },
+        {
+            "id": "input_dir",
+            "name": "input_dir",
+            "description": "Input root: BIDS dir for mri_robust_template; stage-1 output dir for run_samseg_long.",
+            "optional": false,
+            "type": "String",
+            "value-key": "[INPUT_DIR]"
+        },
+        {
+            "id": "output_dir",
+            "name": "output_dir",
+            "description": "Output directory (results go under <output_dir>/<sub>/).",
+            "optional": false,
+            "type": "String",
+            "value-key": "[OUTPUT_DIR]"
+        },
+        {
+            "id": "participant_id",
+            "name": "participant_id",
+            "description": "Participant label, with or without the sub- prefix.",
+            "optional": false,
+            "type": "String",
+            "value-key": "[PARTICIPANT_ID]"
+        }
+    ],
+    "tags": {},
+    "suggested-resources": {
+        "cpu-cores": 2,
+        "ram": 8,
+        "walltime-estimate": 120
+    }
+}

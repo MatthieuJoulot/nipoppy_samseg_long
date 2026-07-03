@@ -1,0 +1,15 @@
+{
+    "NAME": "samseg_long_onestep",
+    "VERSION": "1.0.0",
+    "STEPS": [
+        {
+            "INVOCATION_FILE": "invocation.json",
+            "DESCRIPTOR_FILE": "descriptor.json",
+            "TRACKER_CONFIG_FILE": "tracker.json",
+            "ANALYSIS_LEVEL": "participant",
+            "GENERATE_PYBIDS_DATABASE": false
+        }
+    ],
+    "PIPELINE_TYPE": "processing",
+    "SCHEMA_VERSION": "1"
+}

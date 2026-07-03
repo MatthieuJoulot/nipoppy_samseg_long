@@ -1,0 +1,24 @@
+{
+    "NAME": "samseg_long",
+    "VERSION": "1.0.0",
+    "STEPS": [
+        {
+            "NAME": "robust_template",
+            "INVOCATION_FILE": "invocation_robust.json",
+            "DESCRIPTOR_FILE": "descriptor.json",
+            "TRACKER_CONFIG_FILE": "tracker_robust.json",
+            "ANALYSIS_LEVEL": "participant",
+            "GENERATE_PYBIDS_DATABASE": false
+        },
+        {
+            "NAME": "samseg_long",
+            "INVOCATION_FILE": "invocation_samseg.json",
+            "DESCRIPTOR_FILE": "descriptor.json",
+            "TRACKER_CONFIG_FILE": "tracker_samseg.json",
+            "ANALYSIS_LEVEL": "participant",
+            "GENERATE_PYBIDS_DATABASE": false
+        }
+    ],
+    "PIPELINE_TYPE": "processing",
+    "SCHEMA_VERSION": "1"
+}
