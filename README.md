@@ -2,7 +2,7 @@
 
 [Nipoppy](https://nipoppy.readthedocs.io) processing pipelines for **SAMSEG
 longitudinal** segmentation, wrapping the `mri_robust_template` and
-`run_samseg_long` tools through [niwrap](https://github.com/styx-api/niwrap):
+`run_samseg_long` tools through [niwrap](https://niwrap.dev/):
 
 1. **`mri_robust_template`** — builds an unbiased within-subject template from a
    participant's T1w images and resamples each session into that template space.
@@ -10,22 +10,19 @@ longitudinal** segmentation, wrapping the `mri_robust_template` and
    template-space images.
 
 Everything runs **once per participant**; the sessions are discovered
-automatically from the BIDS tree, so no per-subject TSV or manual session list
-is needed.
+automatically from the BIDS tree.
 
 ## Two flavours
 
 The same workflow is packaged two ways — pick whichever fits how you like to run
 things:
 
-| Directory   | Nipoppy pipeline (`NAME`) | Steps | Worker script | When to use |
-|-------------|---------------------------|-------|---------------|-------------|
-| [`one_shot/`](one_shot) | `samseg_long_onestep` | 1 | `one_stage_samseg_long.py` | Simplest: one `nipoppy process` call runs both tools back-to-back per participant. |
-| [`two_shot/`](two_shot) | `samseg_long` | 2 (`robust_template`, `samseg_long`) | `two_stage_samseg_long.py` | Run/track the template and the segmentation as separate steps (e.g. inspect templates before segmenting, or parallelise differently). |
+| Directory | Pipeline (`NAME`) | Steps | Worker script | When to use |
+|:---------:|:-----------------:|:-----:|:-------------:|:-----------:|
+| [`one_shot/`](one_shot) | `samseg_long_onestep` | 1 | `one_stage_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
+| [`two_shot/`](two_shot) | `samseg_long` | 2 | `two_stage_samseg_long.py` | Two steps, `robust_template` then `samseg_long` — run and track the template and the segmentation separately (e.g. inspect templates before segmenting, or parallelise differently). |
 
 Both produce identical outputs and share the same fixes (see [Notes](#notes)).
-Both are validated end-to-end on real data (`nipoppy process` +
-`nipoppy track-processing`, both **SUCCESS**).
 
 Each folder ships a precise, step-by-step runbook —
 [`one_shot/instruction.md`](one_shot/instruction.md) and
@@ -36,12 +33,13 @@ overview; the `instruction.md` files are the exact procedure.
 ## Requirements
 
 - The **`mri_robust_template`** and **`run_samseg_long`** commands on `$PATH`, with
-  `FREESURFER_HOME` set — the pipelines call them directly (via niwrap `use_local`),
-  and SAMSEG reads its atlases from `$FREESURFER_HOME/average/samseg`.
-- **Python ≥ 3.11** — `niwrap_freesurfer` uses `typing.NotRequired`, which does
-  not exist before 3.11.
-- **niwrap** and friends — `pip install -r requirements.txt`.
-- **nipoppy** ≥ 0.4 (tested with 0.4.6).
+  `FREESURFER_HOME` set — the pipelines invoke these tools **by name** (niwrap
+  `use_local` runs whatever binary is on `$PATH`), and `run_samseg_long` (SAMSEG)
+  loads its atlas files from `$FREESURFER_HOME/average/samseg` at runtime, so both
+  the binaries and that env var must be present or the run fails.
+- **Python ≥ 3.11**
+- **niwrap** — `pip install -r requirements.txt`
+- **nipoppy** ≥ 0.4 (tested with 0.4.6)
 
 > [!IMPORTANT]
 > These pipelines run **container-less**: nipoppy executes `python …` directly
@@ -142,21 +140,30 @@ The trackers mark a participant complete when `sub-<ID>/samseg_long/tp*/seg.mgz`
 ```
 nipoppy_samseg_long/
 ├── README.md
-├── requirements.txt          # shared by both flavours
-├── one_shot/                 # pipeline: samseg_long_onestep (1 step)
-│   ├── config.json  descriptor.json  invocation.json  tracker.json
-│   └── one_stage_samseg_long.py
-└── two_shot/                 # pipeline: samseg_long (2 steps)
-    ├── config.json  descriptor.json
-    ├── invocation_robust.json  invocation_samseg.json
-    ├── tracker_robust.json     tracker_samseg.json
-    └── two_stage_samseg_long.py
+├── requirements.txt                # shared by both flavours
+├── .gitignore
+├── one_shot/                       # pipeline: samseg_long_onestep (1 step)
+│   ├── config.json
+│   ├── descriptor.json
+│   ├── invocation.json
+│   ├── tracker.json
+│   ├── one_stage_samseg_long.py
+│   └── instruction.md
+└── two_shot/                       # pipeline: samseg_long (2 steps)
+    ├── config.json
+    ├── descriptor.json
+    ├── invocation_robust.json
+    ├── invocation_samseg.json
+    ├── tracker_robust.json
+    ├── tracker_samseg.json
+    ├── two_stage_samseg_long.py
+    └── instruction.md
 ```
 
 ## Credit
 
 Wraps the `mri_robust_template` and `run_samseg_long` commands via
-[niwrap](https://github.com/styx-api/niwrap); packaged for
+[niwrap](https://niwrap.dev/); packaged for
 [Nipoppy](https://nipoppy.readthedocs.io). Please cite the relevant method papers
 (Reuter et al. 2012 for the robust template; Puonti et al. 2016 / Cerri et al.
 2021 for SAMSEG) when using these outputs.
