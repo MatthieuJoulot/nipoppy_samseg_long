@@ -1,4 +1,4 @@
-# Python dependencies for the worker scripts (one_shot and two_shot).
+# Python dependencies for the worker scripts (one_step and two_step).
 #
 # Requires Python >= 3.11  (niwrap_freesurfer uses typing.NotRequired).
 # Install these into the Python environment from which you run `nipoppy`,

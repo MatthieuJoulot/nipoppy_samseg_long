@@ -25,7 +25,7 @@
         {
             "id": "input_dir",
             "name": "input_dir",
-            "description": "Input root: BIDS dir for mri_robust_template; stage-1 output dir for run_samseg_long.",
+            "description": "Input root: BIDS dir for mri_robust_template; step-1 output dir for run_samseg_long.",
             "optional": false,
             "type": "String",
             "value-key": "[INPUT_DIR]"

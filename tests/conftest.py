@@ -20,8 +20,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ONE_SHOT = REPO_ROOT / "one_shot" / "one_stage_samseg_long.py"
-TWO_SHOT = REPO_ROOT / "two_shot" / "two_stage_samseg_long.py"
+ONE_STEP = REPO_ROOT / "one_step" / "one_step_samseg_long.py"
+TWO_STEP = REPO_ROOT / "two_step" / "two_step_samseg_long.py"
 
 
 # --------------------------------------------------------------------------- #
@@ -111,30 +111,30 @@ def _load_worker(path: Path, name: str, fake_modules):
 
 
 @pytest.fixture
-def one_stage(monkeypatch):
-    """Freshly-imported one_shot worker + the record of its niwrap calls."""
+def one_step(monkeypatch):
+    """Freshly-imported one_step worker + the record of its niwrap calls."""
     record, fake_modules = _build_fake_modules()
     # keep OMP/OPENBLAS env changes from leaking between tests
     monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
     monkeypatch.delenv("OPENBLAS_NUM_THREADS", raising=False)
-    module = _load_worker(ONE_SHOT, "one_stage_worker", fake_modules)
+    module = _load_worker(ONE_STEP, "one_step_worker", fake_modules)
     module._record = record
     return module
 
 
 @pytest.fixture
-def two_stage(monkeypatch):
-    """Freshly-imported two_shot worker + the record of its niwrap calls."""
+def two_step(monkeypatch):
+    """Freshly-imported two_step worker + the record of its niwrap calls."""
     record, fake_modules = _build_fake_modules()
     monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
     monkeypatch.delenv("OPENBLAS_NUM_THREADS", raising=False)
-    module = _load_worker(TWO_SHOT, "two_stage_worker", fake_modules)
+    module = _load_worker(TWO_STEP, "two_step_worker", fake_modules)
     module._record = record
     return module
 
 
 # --------------------------------------------------------------------------- #
-# Helpers to build fake BIDS / stage-1 trees on disk                           #
+# Helpers to build fake BIDS / step-1 trees on disk                           #
 # --------------------------------------------------------------------------- #
 @pytest.fixture
 def make_bids(tmp_path):
@@ -151,7 +151,7 @@ def make_bids(tmp_path):
 
 @pytest.fixture
 def make_registered(tmp_path):
-    """Create stage-1 registered images
+    """Create step-1 registered images
     sub-<ID>/sub-<ID>_ses-<S>_space-longTemplate<TPL>_T1w.nii.gz."""
     def _make(participant, sessions, tpl="1a.1b", root_name="out"):
         out = tmp_path / root_name

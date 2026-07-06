@@ -1,5 +1,5 @@
 {
-    "script_path": "[[NIPOPPY_DPATH_PIPELINES]]/processing/samseg_long-1.0.0/two_stage_samseg_long.py",
+    "script_path": "[[NIPOPPY_DPATH_PIPELINES]]/processing/samseg_long-1.0.0/two_step_samseg_long.py",
     "tool": "run_samseg_long",
     "input_dir": "[[NIPOPPY_DPATH_PIPELINE_OUTPUT]]",
     "output_dir": "[[NIPOPPY_DPATH_PIPELINE_OUTPUT]]",

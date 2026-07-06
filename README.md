@@ -19,14 +19,14 @@ things:
 
 | Directory | Pipeline (`NAME`) | Steps | Worker script | When to use |
 |:---------:|:-----------------:|:-----:|:-------------:|:-----------:|
-| [`one_shot/`](one_shot) | `samseg_long_onestep` | 1 | `one_stage_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
-| [`two_shot/`](two_shot) | `samseg_long` | 2 | `two_stage_samseg_long.py` | Two steps, `robust_template` then `samseg_long` — run and track the template and the segmentation separately (e.g. inspect templates before segmenting, or parallelise differently). |
+| [`one_step/`](one_step) | `samseg_long_onestep` | 1 | `one_step_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
+| [`two_step/`](two_step) | `samseg_long` | 2 | `two_step_samseg_long.py` | Two steps, `robust_template` then `samseg_long` — run and track the template and the segmentation separately (e.g. inspect templates before segmenting, or parallelise differently). |
 
 Both produce identical outputs and share the same fixes (see [Notes](#notes)).
 
 Each folder ships a precise, step-by-step runbook —
-[`one_shot/instruction.md`](one_shot/instruction.md) and
-[`two_shot/instruction.md`](two_shot/instruction.md) — that can be followed by hand
+[`one_step/instruction.md`](one_step/instruction.md) and
+[`two_step/instruction.md`](two_step/instruction.md) — that can be followed by hand
 or fed to an LLM/agent to drive the processing end to end. The sections below are the
 overview; the `instruction.md` files are the exact procedure.
 
@@ -60,14 +60,14 @@ pip install -r requirements.txt
 #      "CONTAINER_CONFIG": { "COMMAND": null, ... }
 
 # 3. Install whichever pipeline you want into your nipoppy dataset
-nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/one_shot
+nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/one_step
 # or
-nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/two_shot
+nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/two_step
 ```
 
 ## Run
 
-### one_shot — single step
+### one_step — single step
 ```bash
 nipoppy process --dataset <dataset> \
   --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
@@ -77,7 +77,7 @@ nipoppy track-processing --dataset <dataset> \
   --pipeline samseg_long_onestep --pipeline-version 1.0.0
 ```
 
-### two_shot — two steps (run in order)
+### two_step — two steps (run in order)
 ```bash
 # step 1: build the templates
 nipoppy process --dataset <dataset> \
@@ -118,7 +118,7 @@ sub-<ID>/
 ```
 
 The trackers mark a participant complete when `sub-<ID>/samseg_long/tp*/seg.mgz`
-(and, for two_shot's first step, the template/registered/transform files) exist.
+(and, for two_step's first step, the template/registered/transform files) exist.
 
 ## Notes
 
@@ -142,21 +142,21 @@ nipoppy_samseg_long/
 ├── README.md
 ├── requirements.txt                # shared by both flavours
 ├── .gitignore
-├── one_shot/                       # pipeline: samseg_long_onestep (1 step)
+├── one_step/                       # pipeline: samseg_long_onestep (1 step)
 │   ├── config.json
 │   ├── descriptor.json
 │   ├── invocation.json
 │   ├── tracker.json
-│   ├── one_stage_samseg_long.py
+│   ├── one_step_samseg_long.py
 │   └── instruction.md
-└── two_shot/                       # pipeline: samseg_long (2 steps)
+└── two_step/                       # pipeline: samseg_long (2 steps)
     ├── config.json
     ├── descriptor.json
     ├── invocation_robust.json
     ├── invocation_samseg.json
     ├── tracker_robust.json
     ├── tracker_samseg.json
-    ├── two_stage_samseg_long.py
+    ├── two_step_samseg_long.py
     └── instruction.md
 ```
 

@@ -8,7 +8,7 @@ Runs the whole chain for one participant, in sequence:
      in OUTPUT_DIR/<sub>/samseg_long/
 
 Usage:
-    python one_stage_samseg_long.py BIDS_DIR OUTPUT_DIR PARTICIPANT_ID
+    python one_step_samseg_long.py BIDS_DIR OUTPUT_DIR PARTICIPANT_ID
 
 Sessions are discovered from the BIDS tree and naturally ordered (ses-1a <
 ses-1b < ses-2). A participant with fewer than 2 sessions is skipped and logged
@@ -110,8 +110,8 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
 
     niwrap.use_local()  # run the mri_robust_template / run_samseg_long tools from $PATH
 
-    # --- Stage 1: mri_robust_template ------------------------------------ #
-    print("=== Stage 1: mri_robust_template ===")
+    # --- Step 1: mri_robust_template ------------------------------------ #
+    print("=== Step 1: mri_robust_template ===")
     print(f"  mov      = {input_filenames}")
     print(f"  template = {template_filename}")
     freesurfer.mri_robust_template(
@@ -121,12 +121,12 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
         mapmov=registered_filenames,
         lta=transformation_filenames,
     )
-    print(f"Stage 1 done. Template: {template_filename}")
+    print(f"Step 1 done. Template: {template_filename}")
 
-    # --- Stage 2: run_samseg_long ---------------------------------------- #
+    # --- Step 2: run_samseg_long ---------------------------------------- #
     # The registered images we just produced are the timepoint inputs (one
     # --timepoint each; the niwrap high-level wrapper can't emit repeated -t).
-    print("=== Stage 2: run_samseg_long ===")
+    print("=== Step 2: run_samseg_long ===")
     samseg_out = f"{subject_out_dir / 'samseg_long'}/"
     Path(samseg_out).mkdir(parents=True, exist_ok=True)
 
@@ -150,12 +150,12 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
     ]
     print("Running:", " ".join(cargs))
     execution.run(cargs)
-    print(f"Stage 2 done. Output under: {samseg_out}")
+    print(f"Step 2 done. Output under: {samseg_out}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         raise SystemExit(
-            "Usage: python one_stage_samseg_long.py BIDS_DIR OUTPUT_DIR PARTICIPANT_ID"
+            "Usage: python one_step_samseg_long.py BIDS_DIR OUTPUT_DIR PARTICIPANT_ID"
         )
     main(sys.argv[1], sys.argv[2], sys.argv[3])

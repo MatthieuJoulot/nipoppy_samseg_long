@@ -3,19 +3,19 @@
 
 ONE script, two tools selected by the first positional argument:
 
-    python two_stage_samseg_long.py mri_robust_template BIDS_DIR  OUTPUT_DIR PARTICIPANT_ID
-    python two_stage_samseg_long.py run_samseg_long     INPUT_DIR OUTPUT_DIR PARTICIPANT_ID
+    python two_step_samseg_long.py mri_robust_template BIDS_DIR  OUTPUT_DIR PARTICIPANT_ID
+    python two_step_samseg_long.py run_samseg_long     INPUT_DIR OUTPUT_DIR PARTICIPANT_ID
 
-Stage 1 (mri_robust_template): reads the participant's BIDS anat T1w images and
+Step 1 (mri_robust_template): reads the participant's BIDS anat T1w images and
 writes the unbiased template, the per-session registered images
 (``<sub>_ses-<s>_space-longTemplate<S>_T1w.nii.gz``) and the lta transforms to
 ``OUTPUT_DIR/<sub>/``.
 
-Stage 2 (run_samseg_long): reads those registered images from ``INPUT_DIR/<sub>/``
-(i.e. stage-1 output) and writes the SAMSEG longitudinal results to
+Step 2 (run_samseg_long): reads those registered images from ``INPUT_DIR/<sub>/``
+(i.e. step-1 output) and writes the SAMSEG longitudinal results to
 ``OUTPUT_DIR/<sub>/samseg_long/``.
 
-Both stages: per-participant, sessions/timepoints discovered by globbing and
+Both steps: per-participant, sessions/timepoints discovered by globbing and
 ordered with the same natural sort (numeric value first, then letter suffix:
 ses-1a < ses-1b < ses-2), participant id tolerant of the ``sub-`` prefix, and a
 participant with fewer than 2 timepoints is skipped and logged (exit 0).
@@ -66,7 +66,7 @@ def bids_subject(participant_id: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
-# Stage 1: mri_robust_template                                                #
+# Step 1: mri_robust_template                                                #
 # --------------------------------------------------------------------------- #
 def discover_bids_sessions(bids: Path, bids_sub: str) -> list[str]:
     """Participant's session labels (no 'ses-' prefix), naturally ordered,
@@ -145,10 +145,10 @@ def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) ->
 
 
 # --------------------------------------------------------------------------- #
-# Stage 2: run_samseg_long                                                     #
+# Step 2: run_samseg_long                                                     #
 # --------------------------------------------------------------------------- #
 def discover_registered(in_dir: Path, bids_sub: str) -> list[str]:
-    """Stage-1 registered images for the participant, naturally ordered by
+    """Step-1 registered images for the participant, naturally ordered by
     session. Returns the timepoint file paths (one per session)."""
     found = []  # (session_label, path)
     for img in (in_dir / bids_sub).glob(
@@ -182,7 +182,7 @@ def run_run_samseg_long(in_dir: str, out_dir: str, participant_id: str) -> None:
         )
         return
 
-    # Samseg results live in their own subdir, separate from stage-1 files.
+    # Samseg results live in their own subdir, separate from step-1 files.
     output_path = f"{out / bids_sub / 'samseg_long'}/"
     Path(output_path).mkdir(parents=True, exist_ok=True)
 
@@ -229,7 +229,7 @@ def main(tool: str, in_dir: str, out_dir: str, participant_id: str) -> None:
 if __name__ == "__main__":
     if len(sys.argv) != 5 or sys.argv[1] not in TOOLS:
         raise SystemExit(
-            "Usage: python two_stage_samseg_long.py "
+            "Usage: python two_step_samseg_long.py "
             "{mri_robust_template|run_samseg_long} INPUT_DIR OUTPUT_DIR PARTICIPANT_ID"
         )
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
