@@ -85,13 +85,22 @@ def setup_runner(
             freesurfer.RUN_SAMSEG_LONG_METADATA._replace(container_image_tag=image)
         )
 
-    extra_args: list[str] = []
+    # Build bind-mount flags. Docker/Podman use OCI -v; Singularity uses
+    # --bind with the same host:container[:ro] syntax. SingularityRunner also
+    # drops the host filesystem by default (--no-mount hostfs), so we keep that
+    # and add explicit binds for the license file and the output directory.
+    if runner == "singularity":
+        mount_flag = "--bind"
+        extra_args = ["--no-mount", "hostfs"]
+    else:  # docker, podman, auto -> docker-style -v
+        mount_flag = "-v"
+        extra_args = []
     if license_file:
         lf = str(Path(license_file).resolve())
-        extra_args += ["-v", f"{lf}:/usr/local/freesurfer/.license:ro"]
+        extra_args += [mount_flag, f"{lf}:/usr/local/freesurfer/.license:ro"]
     for d in mount_dirs or []:
         rd = str(Path(d).resolve())
-        extra_args += ["-v", f"{rd}:{rd}"]
+        extra_args += [mount_flag, f"{rd}:{rd}"]
 
     kwargs: dict = {}
     if runner == "docker":
@@ -101,7 +110,7 @@ def setup_runner(
         kwargs["singularity_extra_args"] = extra_args
         niwrap.use_singularity(**kwargs)
     elif runner == "podman":
-        kwargs["docker_extra_args"] = extra_args
+        kwargs["podman_extra_args"] = extra_args
         niwrap.use_podman(**kwargs)
     elif runner == "auto":
         niwrap.use_auto(**kwargs)

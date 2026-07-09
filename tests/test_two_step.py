@@ -23,6 +23,20 @@ def test_setup_runner_docker(two_step, make_bids, tmp_path):
     assert "use_docker_kwargs" in two_step._record
 
 
+def test_setup_runner_singularity(two_step, make_bids, tmp_path):
+    """runner='singularity' uses --bind (not docker -v) for mounts."""
+    bids = make_bids("X", ["1a", "1b"])
+    two_step.main("mri_robust_template", str(bids), str(tmp_path / "out"), "X",
+                  runner="singularity", license_file="/fake/license.txt")
+    assert "use_singularity_kwargs" in two_step._record
+    extra = two_step._record["use_singularity_kwargs"]["singularity_extra_args"]
+    extra_str = " ".join(extra)
+    assert "--bind" in extra
+    assert "/usr/local/freesurfer/.license:ro" in extra_str
+    assert "--no-mount" in extra and "hostfs" in extra
+    assert "-v" not in extra
+
+
 def test_setup_runner_container_requires_license(two_step):
     """Container runners without --license raise SystemExit."""
     with pytest.raises(SystemExit, match="--license is required"):

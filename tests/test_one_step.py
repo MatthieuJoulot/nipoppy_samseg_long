@@ -27,11 +27,17 @@ def test_setup_runner_docker(one_step, make_bids, tmp_path):
 
 
 def test_setup_runner_singularity(one_step, make_bids, tmp_path):
-    """runner='singularity' calls niwrap.use_singularity() with license mount."""
+    """runner='singularity' uses --bind (not docker -v) for mounts."""
     bids = make_bids("X", ["1a", "1b"])
     one_step.main(str(bids), str(tmp_path / "out"), "sub-X",
                   runner="singularity", license_file="/fake/license.txt")
     assert "use_singularity_kwargs" in one_step._record
+    extra = one_step._record["use_singularity_kwargs"]["singularity_extra_args"]
+    extra_str = " ".join(extra)
+    assert "--bind" in extra
+    assert "/usr/local/freesurfer/.license:ro" in extra_str
+    assert "--no-mount" in extra and "hostfs" in extra
+    assert "-v" not in extra  # singularity must not get docker-style -v
 
 
 def test_setup_runner_container_requires_license(one_step):
