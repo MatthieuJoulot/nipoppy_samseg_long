@@ -25,10 +25,10 @@ things:
 Both produce identical outputs and share the same fixes (see [Notes](#notes)).
 
 Each folder ships a precise, step-by-step runbook —
-[`one_step/instruction.md`](one_step/instruction.md) and
-[`two_step/instruction.md`](two_step/instruction.md) — that can be followed by hand
+[`one_step/README.md`](one_step/README.md) and
+[`two_step/README.md`](two_step/README.md) — that can be followed by hand
 or fed to an LLM/agent to drive the processing end to end. The sections below are the
-overview; the `instruction.md` files are the exact procedure.
+overview; those per-folder `README.md` files are the exact procedure.
 
 ## Requirements
 
@@ -148,7 +148,8 @@ nipoppy_samseg_long/
 │   ├── invocation.json
 │   ├── tracker.json
 │   ├── one_step_samseg_long.py
-│   └── instruction.md
+│   ├── requirements.txt            # symlink -> ../requirements.txt
+│   └── README.md                   # step-by-step runbook
 └── two_step/                       # pipeline: samseg_long (2 steps)
     ├── config.json
     ├── descriptor.json
@@ -157,7 +158,8 @@ nipoppy_samseg_long/
     ├── tracker_robust.json
     ├── tracker_samseg.json
     ├── two_step_samseg_long.py
-    └── instruction.md
+    ├── requirements.txt            # symlink -> ../requirements.txt
+    └── README.md                   # step-by-step runbook
 ```
 
 ## Tests

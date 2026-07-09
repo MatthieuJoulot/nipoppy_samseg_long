@@ -31,7 +31,7 @@ def test_bids_subject_prefix_tolerance(two_step, given, expected):
 
 def test_discover_bids_sessions_sorted(two_step, make_bids):
     bids = make_bids("X", ["2", "1b", "1a"])
-    assert two_step.discover_bids_sessions(bids, "sub-X") == ["1a", "1b", "2"]
+    assert [s for s, _ in two_step.discover_bids_sessions(bids, "sub-X")] == ["1a", "1b", "2"]
 
 
 # --------------------------------------------------------------------------- #
@@ -44,6 +44,15 @@ def test_discover_registered_sorted_paths(two_step, make_registered):
         "sub-X_ses-1a_space-longTemplate1a.1b.2_T1w.nii.gz",
         "sub-X_ses-1b_space-longTemplate1a.1b.2_T1w.nii.gz",
         "sub-X_ses-2_space-longTemplate1a.1b.2_T1w.nii.gz",
+    ]
+
+
+def test_discover_registered_accepts_nii(two_step, make_registered):
+    out = make_registered("X", ["1a", "1b"], tpl="1a.1b", ext=".nii")
+    got = two_step.discover_registered(out, "sub-X")
+    assert [os.path.basename(p) for p in got] == [
+        "sub-X_ses-1a_space-longTemplate1a.1b_T1w.nii",
+        "sub-X_ses-1b_space-longTemplate1a.1b_T1w.nii",
     ]
 
 

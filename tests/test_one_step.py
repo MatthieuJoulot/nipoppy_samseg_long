@@ -43,15 +43,29 @@ def test_bids_subject_prefix_tolerance(one_step, given, expected):
 # --------------------------------------------------------------------------- #
 # discover_bids_sessions                                                       #
 # --------------------------------------------------------------------------- #
+def _labels(discovered):
+    return [s for s, _ in discovered]
+
+
 def test_discover_bids_sessions_sorted(one_step, make_bids):
     bids = make_bids("X", ["2", "1b", "1a"])           # created out of order
-    assert one_step.discover_bids_sessions(bids, "sub-X") == ["1a", "1b", "2"]
+    assert _labels(one_step.discover_bids_sessions(bids, "sub-X")) == ["1a", "1b", "2"]
+
+
+def test_discover_bids_sessions_accepts_nii_and_gz(one_step, make_bids):
+    bids = make_bids("X", [("1a", ".nii"), ("1b", ".nii.gz")])   # mixed extensions
+    discovered = one_step.discover_bids_sessions(bids, "sub-X")
+    assert _labels(discovered) == ["1a", "1b"]
+    assert [os.path.basename(p) for _, p in discovered] == [
+        "sub-X_ses-1a_T1w.nii",
+        "sub-X_ses-1b_T1w.nii.gz",
+    ]
 
 
 def test_discover_bids_sessions_ignores_other_subjects(one_step, make_bids):
     bids = make_bids("X", ["1a", "1b"])
     make_bids("Y", ["1a", "1b", "1c"], root_name="bids")  # same tree, different subject
-    assert one_step.discover_bids_sessions(bids, "sub-X") == ["1a", "1b"]
+    assert _labels(one_step.discover_bids_sessions(bids, "sub-X")) == ["1a", "1b"]
 
 
 def test_discover_bids_sessions_missing_dir_is_empty(one_step, tmp_path):
@@ -97,6 +111,24 @@ def test_main_builds_expected_names_and_command(one_step, make_bids, tmp_path):
     assert "--save-warp" in cargs and "--save-mesh" in cargs and "--save-posteriors" in cargs
     out_idx = cargs.index("--output") + 1
     assert cargs[out_idx].endswith(f"sub-X{os.sep}samseg_long{os.sep}")
+
+
+def test_main_mirrors_nii_extension(one_step, make_bids, tmp_path):
+    bids = make_bids("X", ["1a", "1b"], ext=".nii")     # uncompressed inputs
+    one_step.main(str(bids), str(tmp_path / "out"), "sub-X")
+    kw = one_step._record["mrt_calls"][0]
+    assert [os.path.basename(p) for p in kw["mov"]] == [
+        "sub-X_ses-1a_T1w.nii",
+        "sub-X_ses-1b_T1w.nii",
+    ]
+    assert [os.path.basename(p) for p in kw["mapmov"]] == [
+        "sub-X_ses-1a_space-longTemplate1a.1b_T1w.nii",
+        "sub-X_ses-1b_space-longTemplate1a.1b_T1w.nii",
+    ]
+    # timepoints handed to run_samseg_long are those .nii registered images
+    cargs = one_step._record["cargs"]
+    tp_files = [cargs[i + 1] for i, a in enumerate(cargs) if a == "--timepoint"]
+    assert tp_files == kw["mapmov"]
 
 
 def test_main_caps_threads_before_samseg(one_step, make_bids, tmp_path):

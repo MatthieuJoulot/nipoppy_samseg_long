@@ -55,15 +55,22 @@ def bids_subject(participant_id: str) -> str:
     return f"sub-{bare}"
 
 
-def discover_bids_sessions(bids: Path, bids_sub: str) -> list[str]:
-    """Participant's session labels (no 'ses-' prefix), naturally ordered,
-    discovered from the anat T1w images in the BIDS tree."""
-    sessions = set()
-    for t1w in bids.glob(f"{bids_sub}/ses-*/anat/{bids_sub}_ses-*_T1w.nii.gz"):
+def t1w_ext(name: str) -> str:
+    """The NIfTI extension of a T1w-style filename: '.nii.gz' or '.nii'."""
+    return ".nii.gz" if name.endswith(".nii.gz") else ".nii"
+
+
+def discover_bids_sessions(bids: Path, bids_sub: str) -> list[tuple[str, str]]:
+    """(session label, T1w path) pairs for the participant, naturally ordered.
+
+    Accepts both ``.nii`` and ``.nii.gz`` inputs; if a session has both, the
+    ``.nii.gz`` one wins (deterministic: sorted iteration, last write wins)."""
+    found: dict[str, str] = {}
+    for t1w in sorted(bids.glob(f"{bids_sub}/ses-*/anat/{bids_sub}_ses-*_T1w.nii*")):
         m = re.search(r"_ses-([^_]+)_T1w", t1w.name)
         if m:
-            sessions.add(m.group(1))
-    return sorted(sessions, key=natural_key)
+            found[m.group(1)] = str(t1w)
+    return sorted(found.items(), key=lambda kv: natural_key(kv[0]))
 
 
 def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
@@ -75,12 +82,13 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
     print(f"with BIDS: {bids_dir}")
     print(f"with OUT: {out_dir}")
 
-    sessions = discover_bids_sessions(bids, bids_sub)
+    discovered = discover_bids_sessions(bids, bids_sub)  # [(session, t1w_path), ...]
+    sessions = [s for s, _ in discovered]
     print(f"Discovered sessions: {sessions}")
 
-    if len(sessions) < 2:
+    if len(discovered) < 2:
         print(
-            f"SKIP {bids_sub}: found {len(sessions)} session(s); the longitudinal "
+            f"SKIP {bids_sub}: found {len(discovered)} session(s); the longitudinal "
             f"chain needs at least 2. Nothing to do."
         )
         return
@@ -90,22 +98,21 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
 
     template_sessions = ".".join(sessions)  # e.g. 1a.1b.2
 
-    input_filenames = [
-        str(bids / bids_sub / f"ses-{s}" / "anat" / f"{bids_sub}_ses-{s}_T1w.nii.gz")
-        for s in sessions
-    ]
+    # Inputs are the actual discovered files (.nii or .nii.gz); each registered
+    # output mirrors its input's extension.
+    input_filenames = [path for _, path in discovered]
     template_filename = str(
         subject_out_dir / f"{bids_sub}_longTemplate{template_sessions}.mgz"
     )
     registered_filenames = [
         str(subject_out_dir
-            / f"{bids_sub}_ses-{s}_space-longTemplate{template_sessions}_T1w.nii.gz")
-        for s in sessions
+            / f"{bids_sub}_ses-{s}_space-longTemplate{template_sessions}_T1w{t1w_ext(path)}")
+        for s, path in discovered
     ]
     transformation_filenames = [
         str(subject_out_dir
             / f"{bids_sub}_ses-{s}_from-native_to-space-longTemplate{template_sessions}_xfm.lta")
-        for s in sessions
+        for s, _ in discovered
     ]
 
     niwrap.use_local()  # run the mri_robust_template / run_samseg_long tools from $PATH

@@ -138,13 +138,17 @@ def two_step(monkeypatch):
 # --------------------------------------------------------------------------- #
 @pytest.fixture
 def make_bids(tmp_path):
-    """Create sub-<ID>/ses-<S>/anat/sub-<ID>_ses-<S>_T1w.nii.gz for each session."""
-    def _make(participant, sessions, root_name="bids"):
+    """Create sub-<ID>/ses-<S>/anat/sub-<ID>_ses-<S>_T1w<ext> for each session.
+
+    `ext` may be ".nii.gz" (default) or ".nii". `sessions` may also be a list of
+    (session, ext) pairs to mix extensions within one participant."""
+    def _make(participant, sessions, ext=".nii.gz", root_name="bids"):
         bids = tmp_path / root_name
-        for s in sessions:
+        for item in sessions:
+            s, e = item if isinstance(item, tuple) else (item, ext)
             anat = bids / f"sub-{participant}" / f"ses-{s}" / "anat"
             anat.mkdir(parents=True, exist_ok=True)
-            (anat / f"sub-{participant}_ses-{s}_T1w.nii.gz").touch()
+            (anat / f"sub-{participant}_ses-{s}_T1w{e}").touch()
         return bids
     return _make
 
@@ -152,12 +156,12 @@ def make_bids(tmp_path):
 @pytest.fixture
 def make_registered(tmp_path):
     """Create step-1 registered images
-    sub-<ID>/sub-<ID>_ses-<S>_space-longTemplate<TPL>_T1w.nii.gz."""
-    def _make(participant, sessions, tpl="1a.1b", root_name="out"):
+    sub-<ID>/sub-<ID>_ses-<S>_space-longTemplate<TPL>_T1w<ext>."""
+    def _make(participant, sessions, tpl="1a.1b", ext=".nii.gz", root_name="out"):
         out = tmp_path / root_name
         subdir = out / f"sub-{participant}"
         subdir.mkdir(parents=True, exist_ok=True)
         for s in sessions:
-            (subdir / f"sub-{participant}_ses-{s}_space-longTemplate{tpl}_T1w.nii.gz").touch()
+            (subdir / f"sub-{participant}_ses-{s}_space-longTemplate{tpl}_T1w{ext}").touch()
         return out
     return _make

@@ -65,18 +65,25 @@ def bids_subject(participant_id: str) -> str:
     return f"sub-{bare}"
 
 
+def t1w_ext(name: str) -> str:
+    """The NIfTI extension of a T1w-style filename: '.nii.gz' or '.nii'."""
+    return ".nii.gz" if name.endswith(".nii.gz") else ".nii"
+
+
 # --------------------------------------------------------------------------- #
 # Step 1: mri_robust_template                                                #
 # --------------------------------------------------------------------------- #
-def discover_bids_sessions(bids: Path, bids_sub: str) -> list[str]:
-    """Participant's session labels (no 'ses-' prefix), naturally ordered,
-    discovered from the anat T1w images in the BIDS tree."""
-    sessions = set()
-    for t1w in bids.glob(f"{bids_sub}/ses-*/anat/{bids_sub}_ses-*_T1w.nii.gz"):
+def discover_bids_sessions(bids: Path, bids_sub: str) -> list[tuple[str, str]]:
+    """(session label, T1w path) pairs for the participant, naturally ordered.
+
+    Accepts both ``.nii`` and ``.nii.gz`` inputs; if a session has both, the
+    ``.nii.gz`` one wins (deterministic: sorted iteration, last write wins)."""
+    found: dict[str, str] = {}
+    for t1w in sorted(bids.glob(f"{bids_sub}/ses-*/anat/{bids_sub}_ses-*_T1w.nii*")):
         m = re.search(r"_ses-([^_]+)_T1w", t1w.name)
         if m:
-            sessions.add(m.group(1))
-    return sorted(sessions, key=natural_key)
+            found[m.group(1)] = str(t1w)
+    return sorted(found.items(), key=lambda kv: natural_key(kv[0]))
 
 
 def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) -> None:
@@ -88,20 +95,19 @@ def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) ->
     print(f"with BIDS: {bids_dir}")
     print(f"with OUT: {out_dir}")
 
-    sessions = discover_bids_sessions(bids, bids_sub)
+    discovered = discover_bids_sessions(bids, bids_sub)  # [(session, t1w_path), ...]
+    sessions = [s for s, _ in discovered]
     print(f"Discovered sessions: {sessions}")
 
-    if len(sessions) < 2:
+    if len(discovered) < 2:
         print(
-            f"SKIP {bids_sub}: found {len(sessions)} session(s); "
+            f"SKIP {bids_sub}: found {len(discovered)} session(s); "
             f"mri_robust_template needs at least 2. Nothing to do."
         )
         return
 
-    input_filenames = [
-        str(bids / bids_sub / f"ses-{s}" / "anat" / f"{bids_sub}_ses-{s}_T1w.nii.gz")
-        for s in sessions
-    ]
+    # Inputs are the actual discovered files (.nii or .nii.gz).
+    input_filenames = [path for _, path in discovered]
 
     subject_out_dir = out / bids_sub
     subject_out_dir.mkdir(parents=True, exist_ok=True)
@@ -111,12 +117,13 @@ def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) ->
         subject_out_dir / f"{bids_sub}_longTemplate{template_sessions}.mgz"
     )
 
+    # Each registered output mirrors its input's extension.
     registered_filenames: list[str] = []
     transformation_filenames: list[str] = []
-    for s in sessions:
+    for s, path in discovered:
         registered_filenames.append(str(
             subject_out_dir
-            / f"{bids_sub}_ses-{s}_space-longTemplate{template_sessions}_T1w.nii.gz"
+            / f"{bids_sub}_ses-{s}_space-longTemplate{template_sessions}_T1w{t1w_ext(path)}"
         ))
         transformation_filenames.append(str(
             subject_out_dir
@@ -152,7 +159,7 @@ def discover_registered(in_dir: Path, bids_sub: str) -> list[str]:
     session. Returns the timepoint file paths (one per session)."""
     found = []  # (session_label, path)
     for img in (in_dir / bids_sub).glob(
-        f"{bids_sub}_ses-*_space-longTemplate*_T1w.nii.gz"
+        f"{bids_sub}_ses-*_space-longTemplate*_T1w.nii*"
     ):
         m = re.search(r"_ses-([^_]+)_space-longTemplate", img.name)
         if m:
