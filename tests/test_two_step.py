@@ -6,6 +6,32 @@ import pytest
 
 
 # --------------------------------------------------------------------------- #
+# setup_runner                                                                 #
+# --------------------------------------------------------------------------- #
+def test_setup_runner_local_default(two_step, make_bids, tmp_path):
+    """Default runner='local' calls niwrap.use_local()."""
+    bids = make_bids("X", ["1a", "1b"])
+    two_step.main("mri_robust_template", str(bids), str(tmp_path / "out"), "X")
+    assert two_step._record["use_local_called"]
+
+
+def test_setup_runner_docker(two_step, make_bids, tmp_path):
+    """runner='docker' calls niwrap.use_docker() with license mount."""
+    bids = make_bids("X", ["1a", "1b"])
+    two_step.main("mri_robust_template", str(bids), str(tmp_path / "out"), "X",
+                  runner="docker", license_file="/fake/license.txt")
+    assert "use_docker_kwargs" in two_step._record
+
+
+def test_setup_runner_container_requires_license(two_step):
+    """Container runners without --license raise SystemExit."""
+    with pytest.raises(SystemExit, match="--license is required"):
+        two_step.setup_runner("docker")
+    with pytest.raises(SystemExit, match="--license is required"):
+        two_step.setup_runner("singularity")
+
+
+# --------------------------------------------------------------------------- #
 # Shared pure helpers (duplicated from one_step; test this copy too)           #
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
@@ -124,8 +150,8 @@ def test_main_dispatches_to_correct_tool(two_step, monkeypatch):
     monkeypatch.setattr(two_step, "run_run_samseg_long",
                         lambda *a: calls.append(("samseg", a)))
 
-    two_step.main("mri_robust_template", "in", "out", "X")
-    two_step.main("run_samseg_long", "in", "out", "X")
+    two_step.main("mri_robust_template", "in", "out", "X", runner="local")
+    two_step.main("run_samseg_long", "in", "out", "X", runner="local")
 
     assert [c[0] for c in calls] == ["mrt", "samseg"]
     assert calls[0][1] == ("in", "out", "X")

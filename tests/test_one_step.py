@@ -6,6 +6,51 @@ import pytest
 
 
 # --------------------------------------------------------------------------- #
+# setup_runner                                                                 #
+# --------------------------------------------------------------------------- #
+def test_setup_runner_local_default(one_step, make_bids, tmp_path):
+    """Default runner='local' calls niwrap.use_local()."""
+    bids = make_bids("X", ["1a", "1b"])
+    one_step.main(str(bids), str(tmp_path / "out"), "sub-X")
+    assert one_step._record["use_local_called"]
+
+
+def test_setup_runner_docker(one_step, make_bids, tmp_path):
+    """runner='docker' calls niwrap.use_docker() with license mount."""
+    bids = make_bids("X", ["1a", "1b"])
+    one_step.main(str(bids), str(tmp_path / "out"), "sub-X",
+                  runner="docker", license_file="/fake/license.txt")
+    assert "use_docker_kwargs" in one_step._record
+    # Verify license is mounted
+    extra = one_step._record["use_docker_kwargs"]["docker_extra_args"]
+    assert "/usr/local/freesurfer/.license:ro" in " ".join(extra)
+
+
+def test_setup_runner_singularity(one_step, make_bids, tmp_path):
+    """runner='singularity' calls niwrap.use_singularity() with license mount."""
+    bids = make_bids("X", ["1a", "1b"])
+    one_step.main(str(bids), str(tmp_path / "out"), "sub-X",
+                  runner="singularity", license_file="/fake/license.txt")
+    assert "use_singularity_kwargs" in one_step._record
+
+
+def test_setup_runner_container_requires_license(one_step):
+    """Container runners without --license raise SystemExit."""
+    with pytest.raises(SystemExit, match="--license is required"):
+        one_step.setup_runner("docker")
+    with pytest.raises(SystemExit, match="--license is required"):
+        one_step.setup_runner("singularity")
+    with pytest.raises(SystemExit, match="--license is required"):
+        one_step.setup_runner("podman")
+
+
+def test_setup_runner_auto_no_license(one_step):
+    """runner='auto' without license is fine (auto-detects, may pick local)."""
+    one_step.setup_runner("auto")
+    assert "use_auto_kwargs" in one_step._record
+
+
+# --------------------------------------------------------------------------- #
 # natural_key                                                                  #
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(

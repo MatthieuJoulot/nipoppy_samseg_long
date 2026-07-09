@@ -54,6 +54,20 @@ class FakeOutputs:
         self.template_output = template
 
 
+class FakeMetadata:
+    """Minimal stand-in for styxdefs.Metadata (a NamedTuple)."""
+
+    def __init__(self, name="fake", container_image_tag="freesurfer/freesurfer:7.4.1"):
+        self.name = name
+        self.container_image_tag = container_image_tag
+
+    def _replace(self, **kwargs):
+        return FakeMetadata(
+            name=kwargs.get("name", self.name),
+            container_image_tag=kwargs.get("container_image_tag", self.container_image_tag),
+        )
+
+
 def _build_fake_modules():
     """Return (record, modules_dict). `record` captures worker->niwrap calls."""
     record = {
@@ -69,7 +83,23 @@ def _build_fake_modules():
     def use_local():
         record["use_local_called"] = True
 
+    def use_docker(**kwargs):
+        record["use_docker_kwargs"] = kwargs
+
+    def use_singularity(**kwargs):
+        record["use_singularity_kwargs"] = kwargs
+
+    def use_podman(**kwargs):
+        record["use_podman_kwargs"] = kwargs
+
+    def use_auto(**kwargs):
+        record["use_auto_kwargs"] = kwargs
+
     niwrap.use_local = use_local
+    niwrap.use_docker = use_docker
+    niwrap.use_singularity = use_singularity
+    niwrap.use_podman = use_podman
+    niwrap.use_auto = use_auto
 
     # fake `styxdefs`
     styxdefs = types.ModuleType("styxdefs")
@@ -77,7 +107,12 @@ def _build_fake_modules():
 
     # fake `freesurfer`
     freesurfer = types.ModuleType("freesurfer")
-    freesurfer.RUN_SAMSEG_LONG_METADATA = "RUN_SAMSEG_LONG_METADATA"
+    freesurfer.MRI_ROBUST_TEMPLATE_METADATA = FakeMetadata(
+        "mri_robust_template", container_image_tag="freesurfer/freesurfer:7.4.1"
+    )
+    freesurfer.RUN_SAMSEG_LONG_METADATA = FakeMetadata(
+        "run_samseg_long", container_image_tag="freesurfer/freesurfer:7.4.1"
+    )
 
     def mri_robust_template(**kwargs):
         record["mrt_calls"].append(kwargs)

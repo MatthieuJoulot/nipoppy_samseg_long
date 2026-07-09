@@ -1,9 +1,9 @@
 {
     "name": "samseg_long_onestep",
-    "description": "SAMSEG longitudinal segmentation via niwrap, one unified step per participant: runs mri_robust_template (BIDS T1w -> unbiased template) then run_samseg_long (template-space images -> longitudinal segmentation). Sessions auto-discovered.",
+    "description": "SAMSEG longitudinal segmentation via niwrap, one unified step per participant: runs mri_robust_template (BIDS T1w -> unbiased template) then run_samseg_long (template-space images -> longitudinal segmentation). Sessions auto-discovered. Supports local, docker, singularity, podman, or auto runner backends.",
     "tool-version": "1.0.0",
     "schema-version": "0.5",
-    "command-line": "python [SCRIPT_PATH] [BIDS_DIR] [OUTPUT_DIR] [PARTICIPANT_ID]",
+    "command-line": "python [SCRIPT_PATH] [BIDS_DIR] [OUTPUT_DIR] [PARTICIPANT_ID] [RUNNER_FLAG] [LICENSE_FLAG] [IMAGE_FLAG]",
     "inputs": [
         {
             "id": "script_path",
@@ -36,6 +36,35 @@
             "optional": false,
             "type": "String",
             "value-key": "[PARTICIPANT_ID]"
+        },
+        {
+            "id": "runner",
+            "name": "runner",
+            "description": "niwrap runner backend: local (default), docker, singularity, podman, or auto.",
+            "optional": true,
+            "type": "String",
+            "value-choices": ["local", "docker", "singularity", "podman", "auto"],
+            "default-value": "local",
+            "command-line-flag": "--runner",
+            "value-key": "[RUNNER_FLAG]"
+        },
+        {
+            "id": "license",
+            "name": "license",
+            "description": "Path to FreeSurfer license.txt. Required for container runners (docker/singularity/podman).",
+            "optional": true,
+            "type": "String",
+            "command-line-flag": "--license",
+            "value-key": "[LICENSE_FLAG]"
+        },
+        {
+            "id": "image",
+            "name": "image",
+            "description": "Override container image (default: auto-resolved from niwrap metadata, currently freesurfer/freesurfer:7.4.1).",
+            "optional": true,
+            "type": "String",
+            "command-line-flag": "--image",
+            "value-key": "[IMAGE_FLAG]"
         }
     ],
     "tags": {},

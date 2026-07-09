@@ -3,8 +3,8 @@
 
 ONE script, two tools selected by the first positional argument:
 
-    python two_step_samseg_long.py mri_robust_template BIDS_DIR  OUTPUT_DIR PARTICIPANT_ID
-    python two_step_samseg_long.py run_samseg_long     INPUT_DIR OUTPUT_DIR PARTICIPANT_ID
+    python two_step_samseg_long.py mri_robust_template BIDS_DIR  OUTPUT_DIR PARTICIPANT_ID [options]
+    python two_step_samseg_long.py run_samseg_long     INPUT_DIR OUTPUT_DIR PARTICIPANT_ID [options]
 
 Step 1 (mri_robust_template): reads the participant's BIDS anat T1w images and
 writes the unbiased template, the per-session registered images
@@ -20,11 +20,21 @@ ordered with the same natural sort (numeric value first, then letter suffix:
 ses-1a < ses-1b < ses-2), participant id tolerant of the ``sub-`` prefix, and a
 participant with fewer than 2 timepoints is skipped and logged (exit 0).
 
-Run with a Python 3.11 env that has niwrap installed. The mri_robust_template and
-run_samseg_long commands must be reachable the way the chosen niwrap runner
-expects (use_local -> on $PATH, with FREESURFER_HOME set for the SAMSEG atlases).
+Run with a Python 3.11 env that has niwrap >= 1.0.3 installed.
+
+Runner modes (--runner):
+  local       (default) Run binaries from $PATH; FREESURFER_HOME must be set.
+  docker      Run inside a Docker container (requires styxdocker).
+  singularity Run inside a Singularity/Apptainer container (requires styxsingularity).
+  podman      Run inside a Podman container (requires styxpodman).
+  auto        Auto-detect the best available runner.
+
+For container runners, --license is required (path to the FreeSurfer license
+file). The container image is auto-resolved from niwrap metadata (currently
+freesurfer/freesurfer:7.4.1). Use --image to override it if needed.
 """
 
+import argparse
 import os
 import re
 import sys
@@ -33,8 +43,8 @@ from pathlib import Path
 import niwrap
 from styxdefs import get_global_runner
 
-# niwrap 1.0.1 ships each tool as its own top-level package (`import
-# freesurfer`); older / hub-style layouts expose it as `niwrap.freesurfer`.
+# niwrap >= 1.0.3 exposes freesurfer as a subpackage of niwrap; older versions
+# (1.0.1) ship it as a standalone top-level package.
 try:
     from niwrap import freesurfer
 except ImportError:
@@ -42,6 +52,72 @@ except ImportError:
 
 
 TOOLS = ("mri_robust_template", "run_samseg_long")
+RUNNERS = ("local", "docker", "singularity", "podman", "auto")
+CONTAINER_RUNNERS = ("docker", "singularity", "podman")
+
+
+def setup_runner(
+    runner: str = "local",
+    license_file: str | None = None,
+    image: str | None = None,
+    mount_dirs: list[str] | None = None,
+) -> None:
+    """Configure the niwrap global runner.
+
+    Args:
+        runner: One of RUNNERS.
+        license_file: Path to the FreeSurfer license.txt (required for
+            container runners; the file is bind-mounted into the container).
+        image: Optional container image override. When omitted the image tag
+            baked into the niwrap metadata is used (e.g.
+            ``freesurfer/freesurfer:7.4.1``).
+        mount_dirs: Host directories to bind-mount read-write into the
+            container (so absolute output paths resolve inside it).
+    """
+    if runner == "local":
+        niwrap.use_local()
+        print("Runner: local")
+        return
+
+    # -- container runner --------------------------------------------------
+    if runner in CONTAINER_RUNNERS and not license_file:
+        raise SystemExit(f"--license is required when --runner={runner}")
+
+    # Override the metadata image tag if the user asked for a custom image.
+    if image:
+        freesurfer.MRI_ROBUST_TEMPLATE_METADATA = (
+            freesurfer.MRI_ROBUST_TEMPLATE_METADATA._replace(container_image_tag=image)
+        )
+        freesurfer.RUN_SAMSEG_LONG_METADATA = (
+            freesurfer.RUN_SAMSEG_LONG_METADATA._replace(container_image_tag=image)
+        )
+
+    extra_args: list[str] = []
+    if license_file:
+        lf = str(Path(license_file).resolve())
+        extra_args += ["-v", f"{lf}:/usr/local/freesurfer/.license:ro"]
+    for d in mount_dirs or []:
+        rd = str(Path(d).resolve())
+        extra_args += ["-v", f"{rd}:{rd}"]
+
+    kwargs: dict = {}
+    if runner == "docker":
+        kwargs["docker_extra_args"] = extra_args
+        niwrap.use_docker(**kwargs)
+    elif runner == "singularity":
+        kwargs["singularity_extra_args"] = extra_args
+        niwrap.use_singularity(**kwargs)
+    elif runner == "podman":
+        kwargs["docker_extra_args"] = extra_args  # podman uses same flag name
+        niwrap.use_podman(**kwargs)
+    elif runner == "auto":
+        # auto may pick any backend; pass args generically
+        niwrap.use_auto(**kwargs)
+    else:
+        raise SystemExit(f"Unknown runner {runner!r}; expected one of {RUNNERS}")
+
+    tag = freesurfer.MRI_ROBUST_TEMPLATE_METADATA.container_image_tag
+    print(f"Runner: {runner}  image: {image or tag}")
 
 
 def natural_key(session_label: str):
@@ -140,7 +216,6 @@ def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) ->
     print("Transformation filenames:")
     print("\n".join(transformation_filenames))
 
-    niwrap.use_local()
     print("Running mri_robust_template via niwrap...")
     outputs = freesurfer.mri_robust_template(
         mov=input_filenames,
@@ -203,7 +278,6 @@ def run_run_samseg_long(in_dir: str, out_dir: str, participant_id: str) -> None:
     os.environ["OMP_NUM_THREADS"] = os.environ.get("OMP_NUM_THREADS", "2")
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
-    niwrap.use_local()
     execution = get_global_runner().start_execution(
         freesurfer.RUN_SAMSEG_LONG_METADATA
     )
@@ -226,7 +300,23 @@ def run_run_samseg_long(in_dir: str, out_dir: str, participant_id: str) -> None:
 
 
 # --------------------------------------------------------------------------- #
-def main(tool: str, in_dir: str, out_dir: str, participant_id: str) -> None:
+def main(
+    tool: str,
+    in_dir: str,
+    out_dir: str,
+    participant_id: str,
+    runner: str = "local",
+    license_file: str | None = None,
+    image: str | None = None,
+) -> None:
+    # Collect directories that need to be visible inside the container.
+    mount_dirs = [str(Path(out_dir).resolve())]
+    if tool == "run_samseg_long" and str(Path(in_dir).resolve()) != mount_dirs[0]:
+        mount_dirs.append(str(Path(in_dir).resolve()))
+
+    setup_runner(runner, license_file=license_file, image=image,
+                 mount_dirs=mount_dirs)
+
     if tool == "mri_robust_template":
         run_mri_robust_template(in_dir, out_dir, participant_id)
     elif tool == "run_samseg_long":
@@ -235,10 +325,36 @@ def main(tool: str, in_dir: str, out_dir: str, participant_id: str) -> None:
         raise SystemExit(f"Unknown TOOL {tool!r}; expected one of {TOOLS}")
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Two-step SAMSEG longitudinal worker (select tool via first argument).",
+    )
+    parser.add_argument(
+        "tool", choices=TOOLS,
+        help="Which tool to run: mri_robust_template or run_samseg_long.",
+    )
+    parser.add_argument("input_dir", help="Input root (BIDS dir for step 1; step-1 output for step 2).")
+    parser.add_argument("output_dir", help="Output directory.")
+    parser.add_argument("participant_id", help="Participant label (with or without sub- prefix).")
+    parser.add_argument(
+        "--runner", choices=RUNNERS, default="local",
+        help="niwrap runner backend (default: local).",
+    )
+    parser.add_argument(
+        "--license", dest="license_file", default=None,
+        help="Path to FreeSurfer license.txt (required for container runners).",
+    )
+    parser.add_argument(
+        "--image", default=None,
+        help=(
+            "Override the container image (default: auto-resolved from niwrap "
+            "metadata, currently freesurfer/freesurfer:7.4.1)."
+        ),
+    )
+    return parser
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 5 or sys.argv[1] not in TOOLS:
-        raise SystemExit(
-            "Usage: python two_step_samseg_long.py "
-            "{mri_robust_template|run_samseg_long} INPUT_DIR OUTPUT_DIR PARTICIPANT_ID"
-        )
-    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    args = _build_parser().parse_args()
+    main(args.tool, args.input_dir, args.output_dir, args.participant_id,
+         runner=args.runner, license_file=args.license_file, image=args.image)
