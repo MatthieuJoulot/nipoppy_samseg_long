@@ -93,8 +93,10 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
         )
         return
 
-    subject_out_dir = out / bids_sub
-    subject_out_dir.mkdir(parents=True, exist_ok=True)
+    # Outputs are grouped by tool: OUTPUT_DIR/mri_robust_template/<sub>/ and
+    # OUTPUT_DIR/samseg_long/<sub>/.
+    mrt_dir = out / "mri_robust_template" / bids_sub
+    mrt_dir.mkdir(parents=True, exist_ok=True)
 
     template_sessions = ".".join(sessions)  # e.g. 1a.1b.2
 
@@ -102,15 +104,15 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
     # output mirrors its input's extension.
     input_filenames = [path for _, path in discovered]
     template_filename = str(
-        subject_out_dir / f"{bids_sub}_longTemplate{template_sessions}.mgz"
+        mrt_dir / f"{bids_sub}_longTemplate{template_sessions}.mgz"
     )
     registered_filenames = [
-        str(subject_out_dir
+        str(mrt_dir
             / f"{bids_sub}_ses-{s}_space-longTemplate{template_sessions}_T1w{t1w_ext(path)}")
         for s, path in discovered
     ]
     transformation_filenames = [
-        str(subject_out_dir
+        str(mrt_dir
             / f"{bids_sub}_ses-{s}_from-native_to-space-longTemplate{template_sessions}_xfm.lta")
         for s, _ in discovered
     ]
@@ -134,7 +136,7 @@ def main(bids_dir: str, out_dir: str, participant_id: str) -> None:
     # The registered images we just produced are the timepoint inputs (one
     # --timepoint each; the niwrap high-level wrapper can't emit repeated -t).
     print("=== Step 2: run_samseg_long ===")
-    samseg_out = f"{subject_out_dir / 'samseg_long'}/"
+    samseg_out = f"{out / 'samseg_long' / bids_sub}/"
     Path(samseg_out).mkdir(parents=True, exist_ok=True)
 
     # Cap thread counts: run_samseg_long's sklearn/GMM step uses OpenBLAS, which

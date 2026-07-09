@@ -71,6 +71,8 @@ def test_step1_builds_expected_names(two_step, make_bids, tmp_path):
     assert len(rec["mrt_calls"]) == 1
     kw = rec["mrt_calls"][0]
     assert os.path.basename(kw["template"]) == "sub-X_longTemplate1a.1b.mgz"
+    assert os.path.dirname(kw["template"]).endswith(
+        os.path.join("mri_robust_template", "sub-X"))
     assert [os.path.basename(p) for p in kw["mapmov"]] == [
         "sub-X_ses-1a_space-longTemplate1a.1b_T1w.nii.gz",
         "sub-X_ses-1b_space-longTemplate1a.1b_T1w.nii.gz",
@@ -100,7 +102,7 @@ def test_step2_repeated_timepoint_and_thread_cap(two_step, make_registered, tmp_
     assert cargs.count("--timepoint") == 2                     # one per timepoint (the bug guard)
     assert "--save-warp" in cargs and "--save-mesh" in cargs and "--save-posteriors" in cargs
     out_idx = cargs.index("--output") + 1
-    assert cargs[out_idx].endswith(f"sub-X{os.sep}samseg_long{os.sep}")
+    assert cargs[out_idx].endswith(f"samseg_long{os.sep}sub-X{os.sep}")
     assert os.environ["OPENBLAS_NUM_THREADS"] == "1"           # segfault fix guard
     assert os.environ["OMP_NUM_THREADS"] == "2"
 

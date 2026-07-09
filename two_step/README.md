@@ -119,9 +119,10 @@ nipoppy process --dataset "$DATASET" \
 Confirm step 1 produced the registered images before starting step 2:
 
 ```bash
-OUT="$DATASET/derivatives/samseg_long/1.0.0/output/sub-${PARTICIPANT#sub-}"
-ls "$OUT"/sub-*_longTemplate*.mgz
-ls "$OUT"/sub-*_ses-*_space-longTemplate*_T1w.nii.gz   # step-2 inputs; need >=2
+OUT="$DATASET/derivatives/samseg_long/1.0.0/output"
+SUB="sub-${PARTICIPANT#sub-}"
+ls "$OUT"/mri_robust_template/"$SUB"/"$SUB"_longTemplate*.mgz
+ls "$OUT"/mri_robust_template/"$SUB"/"$SUB"_ses-*_space-longTemplate*_T1w.nii*   # step-2 inputs; need >=2
 ```
 
 Do **not** continue until these exist.
@@ -148,8 +149,9 @@ Finished when the log contains `Ran for 1 out of 1`.
 ## 7. Verify success
 
 ```bash
-OUT="$DATASET/derivatives/samseg_long/1.0.0/output/sub-${PARTICIPANT#sub-}"
-ls "$OUT"/samseg_long/tp*/seg.mgz     # per-timepoint segmentations (>=2)
+OUT="$DATASET/derivatives/samseg_long/1.0.0/output"
+SUB="sub-${PARTICIPANT#sub-}"
+ls "$OUT"/samseg_long/"$SUB"/tp*/seg.mgz     # per-timepoint segmentations (>=2)
 
 nipoppy track-processing --dataset "$DATASET" \
   --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step robust_template
@@ -160,14 +162,14 @@ nipoppy track-processing --dataset "$DATASET" \
 The pipeline is **complete** when **both** `track-processing` calls report each session
 as `SUCCESS` in `$DATASET/derivatives/processing_status.tsv`.
 
-### Expected outputs (under `.../output/sub-<ID>/`)
+### Expected outputs (under `.../output/`, grouped by tool)
 ```
-# from step 1 (robust_template):
-sub-<ID>_longTemplate<S1.S2...>.mgz                               # template
-sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii.gz          # registered image, per session
-sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta   # transform, per session
-# from step 2 (samseg_long):
-samseg_long/base/  samseg_long/latentAtlases/  samseg_long/tpNNN/ # SAMSEG; tpNNN/seg.mgz per timepoint
+mri_robust_template/sub-<ID>/                                      # from step 1 (robust_template)
+  sub-<ID>_longTemplate<S1.S2...>.mgz                              # template
+  sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii[.gz]       # registered image, per session
+  sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta  # transform, per session
+samseg_long/sub-<ID>/                                              # from step 2 (samseg_long)
+  base/   latentAtlases/   tp001/ tp002/ …                         # SAMSEG; tpNNN/seg.mgz per timepoint
 ```
 Sessions are auto-discovered and naturally ordered (`ses-1a < ses-1b < ses-2`);
 step 2 discovers its timepoints by globbing step 1's `*_space-longTemplate*_T1w.nii.gz`.

@@ -1,5 +1,5 @@
 {
     "PATHS": [
-        "[[NIPOPPY_BIDS_PARTICIPANT_ID]]/samseg_long/tp*/seg.mgz"
+        "samseg_long/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/tp*/seg.mgz"
     ]
 }

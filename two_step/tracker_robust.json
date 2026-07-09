@@ -1,7 +1,7 @@
 {
     "PATHS": [
-        "[[NIPOPPY_BIDS_PARTICIPANT_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]_longTemplate*.mgz",
-        "[[NIPOPPY_BIDS_PARTICIPANT_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]_ses-*_space-longTemplate*_T1w.nii*",
-        "[[NIPOPPY_BIDS_PARTICIPANT_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]_ses-*_from-native_to-space-longTemplate*_xfm.lta"
+        "mri_robust_template/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]_longTemplate*.mgz",
+        "mri_robust_template/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]_ses-*_space-longTemplate*_T1w.nii*",
+        "mri_robust_template/[[NIPOPPY_BIDS_PARTICIPANT_ID]]/[[NIPOPPY_BIDS_PARTICIPANT_ID]]_ses-*_from-native_to-space-longTemplate*_xfm.lta"
     ]
 }

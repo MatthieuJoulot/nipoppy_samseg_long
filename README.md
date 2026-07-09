@@ -104,21 +104,25 @@ Sessions are discovered by globbing and **naturally sorted** (numeric first, the
 letter suffix: `ses-1a < ses-1b < ses-2`). A participant with fewer than **2**
 sessions is **skipped and logged** (a longitudinal template needs ≥2 timepoints).
 
-**Output** (under the pipeline's output dir, per participant `sub-<ID>/`):
+**Output** (under the pipeline's output dir), grouped by tool:
 
 ```
-sub-<ID>/
-  sub-<ID>_longTemplate<S1.S2...>.mgz                              # unbiased template
-  sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii.gz         # registered image (per session)
-  sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta  # transform (per session)
-  samseg_long/
+mri_robust_template/
+  sub-<ID>/
+    sub-<ID>_longTemplate<S1.S2...>.mgz                              # unbiased template
+    sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii[.gz]       # registered image (per session)
+    sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta  # transform (per session)
+samseg_long/
+  sub-<ID>/
     base/            # SAMSEG base subject
     latentAtlases/
     tp001/ tp002/ …  # per-timepoint segmentation; tpNNN/seg.mgz is the completion marker
 ```
 
-The trackers mark a participant complete when `sub-<ID>/samseg_long/tp*/seg.mgz`
-(and, for two_step's first step, the template/registered/transform files) exist.
+Registered images mirror the input extension (`.nii` or `.nii.gz`). The trackers
+mark a participant complete when `samseg_long/sub-<ID>/tp*/seg.mgz` (and, for
+two_step's first step, the `mri_robust_template/sub-<ID>/` template, registered
+and transform files) exist.
 
 ## Notes
 

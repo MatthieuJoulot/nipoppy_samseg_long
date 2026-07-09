@@ -109,7 +109,8 @@ def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) ->
     # Inputs are the actual discovered files (.nii or .nii.gz).
     input_filenames = [path for _, path in discovered]
 
-    subject_out_dir = out / bids_sub
+    # Outputs grouped by tool: OUTPUT_DIR/mri_robust_template/<sub>/.
+    subject_out_dir = out / "mri_robust_template" / bids_sub
     subject_out_dir.mkdir(parents=True, exist_ok=True)
 
     template_sessions = ".".join(sessions)  # e.g. 1a.1b.2
@@ -156,9 +157,10 @@ def run_mri_robust_template(bids_dir: str, out_dir: str, participant_id: str) ->
 # --------------------------------------------------------------------------- #
 def discover_registered(in_dir: Path, bids_sub: str) -> list[str]:
     """Step-1 registered images for the participant, naturally ordered by
-    session. Returns the timepoint file paths (one per session)."""
+    session. Returns the timepoint file paths (one per session). Step 1 writes
+    these under <in_dir>/mri_robust_template/<sub>/."""
     found = []  # (session_label, path)
-    for img in (in_dir / bids_sub).glob(
+    for img in (in_dir / "mri_robust_template" / bids_sub).glob(
         f"{bids_sub}_ses-*_space-longTemplate*_T1w.nii*"
     ):
         m = re.search(r"_ses-([^_]+)_space-longTemplate", img.name)
@@ -184,13 +186,13 @@ def run_run_samseg_long(in_dir: str, out_dir: str, participant_id: str) -> None:
     if len(input_files) < 2:
         print(
             f"SKIP {bids_sub}: found {len(input_files)} registered image(s) in "
-            f"{in_ / bids_sub}; run_samseg_long needs at least 2 timepoints. "
-            f"Nothing to do."
+            f"{in_ / 'mri_robust_template' / bids_sub}; run_samseg_long needs at "
+            f"least 2 timepoints. Nothing to do."
         )
         return
 
-    # Samseg results live in their own subdir, separate from step-1 files.
-    output_path = f"{out / bids_sub / 'samseg_long'}/"
+    # Samseg results grouped by tool: OUTPUT_DIR/samseg_long/<sub>/.
+    output_path = f"{out / 'samseg_long' / bids_sub}/"
     Path(output_path).mkdir(parents=True, exist_ok=True)
 
     # Cap thread counts before launching run_samseg_long. Its Python/sklearn

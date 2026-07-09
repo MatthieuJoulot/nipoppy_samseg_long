@@ -136,9 +136,10 @@ The run is finished when the log contains `Ran for 1 out of 1`.
 ## 7. Verify success
 
 ```bash
-OUT="$DATASET/derivatives/samseg_long_onestep/1.0.0/output/sub-${PARTICIPANT#sub-}"
-ls "$OUT"/sub-*_longTemplate*.mgz                 # unbiased template
-ls "$OUT"/samseg_long/tp*/seg.mgz                 # per-timepoint segmentations (>=2)
+OUT="$DATASET/derivatives/samseg_long_onestep/1.0.0/output"
+SUB="sub-${PARTICIPANT#sub-}"
+ls "$OUT"/mri_robust_template/"$SUB"/"$SUB"_longTemplate*.mgz   # unbiased template
+ls "$OUT"/samseg_long/"$SUB"/tp*/seg.mgz                         # per-timepoint segmentations (>=2)
 
 nipoppy track-processing --dataset "$DATASET" \
   --pipeline samseg_long_onestep --pipeline-version 1.0.0
@@ -147,14 +148,17 @@ nipoppy track-processing --dataset "$DATASET" \
 The pipeline is **complete** when `track-processing` reports each session as
 `SUCCESS` in `$DATASET/derivatives/processing_status.tsv`.
 
-### Expected outputs (under `.../output/sub-<ID>/`)
+### Expected outputs (under `.../output/`, grouped by tool)
 ```
-sub-<ID>_longTemplate<S1.S2...>.mgz                               # template
-sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii.gz          # registered image, per session
-sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta   # transform, per session
-samseg_long/base/  samseg_long/latentAtlases/  samseg_long/tpNNN/ # SAMSEG; tpNNN/seg.mgz per timepoint
+mri_robust_template/sub-<ID>/
+  sub-<ID>_longTemplate<S1.S2...>.mgz                              # template
+  sub-<ID>_ses-<S>_space-longTemplate<S1.S2...>_T1w.nii[.gz]       # registered image, per session
+  sub-<ID>_ses-<S>_from-native_to-space-longTemplate<...>_xfm.lta  # transform, per session
+samseg_long/sub-<ID>/
+  base/   latentAtlases/   tp001/ tp002/ …                         # SAMSEG; tpNNN/seg.mgz per timepoint
 ```
-Sessions are auto-discovered from BIDS and naturally ordered (`ses-1a < ses-1b < ses-2`).
+Sessions are auto-discovered from BIDS and naturally ordered (`ses-1a < ses-1b < ses-2`);
+registered images mirror the input extension (`.nii` or `.nii.gz`).
 
 ---
 
