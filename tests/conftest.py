@@ -20,8 +20,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ONE_STEP = REPO_ROOT / "one_step" / "one_step_samseg_long.py"
-TWO_STEP = REPO_ROOT / "two_step" / "two_step_samseg_long.py"
+ONE_STEP = REPO_ROOT / "samseg_long_onestep" / "one_step_samseg_long.py"
+TWO_STEP = REPO_ROOT / "samseg_long_twostep" / "two_step_samseg_long.py"
 
 
 # --------------------------------------------------------------------------- #

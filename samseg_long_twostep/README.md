@@ -1,10 +1,10 @@
-# Instruction — two_step (`samseg_long`)
+# Instruction — samseg_long_twostep (`samseg_long_twostep`)
 
 Precise runbook to install and run this pipeline. Readable by a human or usable
 as-is by an LLM/agent to drive the processing. Follow the steps in order. Where a
 command is given, run it verbatim after substituting the variables in **Section 0**.
 
-This pipeline runs the same workflow as `one_step` but as **two separate nipoppy
+This pipeline runs the same workflow as `samseg_long_onestep` but as **two separate nipoppy
 steps**, executed **in order**, once per participant:
 
 1. step **`robust_template`** — `mri_robust_template`: BIDS T1w → unbiased
@@ -15,19 +15,28 @@ steps**, executed **in order**, once per participant:
 Step 2 reads step 1's output (both steps share the pipeline output dir), so **step 1
 must finish before step 2**.
 
-- Pipeline `NAME`: **`samseg_long`**
+- Pipeline `NAME`: **`samseg_long_twostep`**
 - Pipeline `VERSION`: **`1.0.0`**
 - Steps: **2** — `robust_template`, then `samseg_long` (pass with `--pipeline-step`)
 - Worker script: `two_step_samseg_long.py`, called as
   `python two_step_samseg_long.py <TOOL> <INPUT_DIR> <OUTPUT_DIR> <PARTICIPANT_ID>`
   where `<TOOL>` is `mri_robust_template` (step 1) or `run_samseg_long` (step 2).
 
+> [!NOTE]
+> This runbook uses the default **`local`** runner (FreeSurfer on the host `$PATH`).
+> To run inside a **container** instead, add `"runner": "docker"` (or
+> `"singularity"`) to **both** installed invocations —
+> `invocation_robust.json` and `invocation_samseg.json` under
+> `<dataset>/pipelines/processing/samseg_long_twostep-1.0.0/`. The license is
+> already provided via `FREESURFER_LICENSE_FILE`. See the top-level README's
+> "Runner backends" section for details.
+
 ---
 
 ## 0. Variables to set
 
 ```bash
-BUNDLE=/ABS/PATH/TO/nipoppy_samseg_long/two_step   # this folder
+BUNDLE=/ABS/PATH/TO/nipoppy_samseg_long/samseg_long_twostep   # this folder
 DATASET=/ABS/PATH/TO/nipoppy_dataset               # an initialized nipoppy dataset root
 PARTICIPANT=SUB01                                  # participant label, with or without "sub-"
 ```
@@ -78,7 +87,7 @@ ls "$DATASET"/bids/sub-${PARTICIPANT#sub-}/ses-*/anat/*_T1w.nii.gz | wc -l
 pip install -r "$BUNDLE/../requirements.txt"
 ```
 
-(`requirements.txt` lives at the repository root, shared with `one_step`.)
+(`requirements.txt` lives at the repository root, shared with `samseg_long_onestep`.)
 
 ---
 
@@ -102,7 +111,7 @@ PY
 
 ```bash
 nipoppy pipeline install --dataset "$DATASET" "$BUNDLE" --assume-yes
-nipoppy pipeline list --dataset "$DATASET"   # expect: samseg_long (1.0.0)
+nipoppy pipeline list --dataset "$DATASET"   # expect: samseg_long_twostep (1.0.0)
 ```
 
 ---
@@ -111,7 +120,7 @@ nipoppy pipeline list --dataset "$DATASET"   # expect: samseg_long (1.0.0)
 
 ```bash
 nipoppy process --dataset "$DATASET" \
-  --pipeline samseg_long --pipeline-version 1.0.0 \
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 \
   --pipeline-step robust_template \
   --participant-id "$PARTICIPANT"
 ```
@@ -119,7 +128,7 @@ nipoppy process --dataset "$DATASET" \
 Confirm step 1 produced the registered images before starting step 2:
 
 ```bash
-OUT="$DATASET/derivatives/samseg_long/1.0.0/output"
+OUT="$DATASET/derivatives/samseg_long_twostep/1.0.0/output"
 SUB="sub-${PARTICIPANT#sub-}"
 ls "$OUT"/mri_robust_template/"$SUB"/"$SUB"_longTemplate*.mgz
 ls "$OUT"/mri_robust_template/"$SUB"/"$SUB"_ses-*_space-longTemplate*_T1w.nii*   # step-2 inputs; need >=2
@@ -134,7 +143,7 @@ Do **not** continue until these exist.
 ```bash
 setsid bash -c '
   nipoppy process --dataset "'"$DATASET"'" \
-    --pipeline samseg_long --pipeline-version 1.0.0 \
+    --pipeline samseg_long_twostep --pipeline-version 1.0.0 \
     --pipeline-step samseg_long \
     --participant-id "'"$PARTICIPANT"'"
 ' > "$DATASET/samseg_long_${PARTICIPANT}.log" 2>&1 < /dev/null &
@@ -149,14 +158,14 @@ Finished when the log contains `Ran for 1 out of 1`.
 ## 7. Verify success
 
 ```bash
-OUT="$DATASET/derivatives/samseg_long/1.0.0/output"
+OUT="$DATASET/derivatives/samseg_long_twostep/1.0.0/output"
 SUB="sub-${PARTICIPANT#sub-}"
 ls "$OUT"/samseg_long/"$SUB"/tp*/seg.mgz     # per-timepoint segmentations (>=2)
 
 nipoppy track-processing --dataset "$DATASET" \
-  --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step robust_template
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 --pipeline-step robust_template
 nipoppy track-processing --dataset "$DATASET" \
-  --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step samseg_long
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 --pipeline-step samseg_long
 ```
 
 The pipeline is **complete** when **both** `track-processing` calls report each session

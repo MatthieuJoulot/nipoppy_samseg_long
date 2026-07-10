@@ -19,14 +19,14 @@ things:
 
 | Directory | Pipeline (`NAME`) | Steps | Worker script | When to use |
 |:---------:|:-----------------:|:-----:|:-------------:|:-----------:|
-| [`one_step/`](one_step) | `samseg_long_onestep` | 1 | `one_step_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
-| [`two_step/`](two_step) | `samseg_long` | 2 | `two_step_samseg_long.py` | Two steps, `robust_template` then `samseg_long` — run and track the template and the segmentation separately (e.g. inspect templates before segmenting, or parallelise differently). |
+| [`samseg_long_onestep/`](samseg_long_onestep) | `samseg_long_onestep` | 1 | `one_step_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
+| [`samseg_long_twostep/`](samseg_long_twostep) | `samseg_long_twostep` | 2 | `two_step_samseg_long.py` | Two steps, `robust_template` then `samseg_long` — run and track the template and the segmentation separately (e.g. inspect templates before segmenting, or parallelise differently). |
 
 Both produce identical outputs and share the same fixes (see [Notes](#notes)).
 
 Each folder ships a precise, step-by-step runbook —
-[`one_step/README.md`](one_step/README.md) and
-[`two_step/README.md`](two_step/README.md) — that can be followed by hand
+[`samseg_long_onestep/README.md`](samseg_long_onestep/README.md) and
+[`samseg_long_twostep/README.md`](samseg_long_twostep/README.md) — that can be followed by hand
 or fed to an LLM/agent to drive the processing end to end. The sections below are the
 overview; those per-folder `README.md` files are the exact procedure.
 
@@ -60,14 +60,20 @@ pip install -r requirements.txt
 #      "CONTAINER_CONFIG": { "COMMAND": null, ... }
 
 # 3. Install whichever pipeline you want into your nipoppy dataset
-nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/one_step
+nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/samseg_long_onestep
 # or
-nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/two_step
+nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/samseg_long_twostep
+
+# 4. Set the FreeSurfer license path. Install adds a required pipeline variable
+#    (FREESURFER_LICENSE_FILE); it must be non-null before the pipeline can run.
+#    Edit <dataset>/global_config.json:
+#      "PIPELINE_VARIABLES": { "PROCESSING": { "<pipeline-name>": { "1.0.0": {
+#          "FREESURFER_LICENSE_FILE": "/abs/path/to/license.txt" }}}}
 ```
 
 ## Run
 
-### one_step — single step
+### samseg_long_onestep — single step
 ```bash
 nipoppy process --dataset <dataset> \
   --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
@@ -77,23 +83,64 @@ nipoppy track-processing --dataset <dataset> \
   --pipeline samseg_long_onestep --pipeline-version 1.0.0
 ```
 
-### two_step — two steps (run in order)
+### samseg_long_twostep — two steps (run in order)
 ```bash
 # step 1: build the templates
 nipoppy process --dataset <dataset> \
-  --pipeline samseg_long --pipeline-version 1.0.0 \
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 \
   --pipeline-step robust_template --participant-id <ID>
 
 # step 2: longitudinal segmentation (reads step 1's output)
 nipoppy process --dataset <dataset> \
-  --pipeline samseg_long --pipeline-version 1.0.0 \
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 \
   --pipeline-step samseg_long --participant-id <ID>
 
 nipoppy track-processing --dataset <dataset> \
-  --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step robust_template
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 --pipeline-step robust_template
 nipoppy track-processing --dataset <dataset> \
-  --pipeline samseg_long --pipeline-version 1.0.0 --pipeline-step samseg_long
+  --pipeline samseg_long_twostep --pipeline-version 1.0.0 --pipeline-step samseg_long
 ```
+
+## Runner backends (local / docker / singularity)
+
+By default the pipelines run the FreeSurfer tools **locally** — i.e. the
+`mri_robust_template` / `run_samseg_long` binaries must be on the host `$PATH`
+(this is the `runner: local` default). You can instead run them **inside a
+container** — no host FreeSurfer needed — by changing **one field** in the
+invocation.
+
+The FreeSurfer **license** is already wired in (via the `FREESURFER_LICENSE_FILE`
+variable you set at install), so switching runners needs no extra license step.
+
+**To use docker:** make sure `docker` is installed (the `freesurfer/freesurfer:7.4.1`
+image is pulled automatically on first run, or `docker pull` it), then add
+`"runner": "docker"` to the invocation(s):
+
+- `samseg_long_onestep`: `<dataset>/pipelines/processing/samseg_long_onestep-1.0.0/invocation.json`
+- `samseg_long_twostep`: **both** `invocation_robust.json` **and** `invocation_samseg.json`
+  under `<dataset>/pipelines/processing/samseg_long_twostep-1.0.0/`
+
+```json
+{
+    "...": "...",
+    "license": "[[FREESURFER_LICENSE_FILE]]",
+    "runner": "docker"
+}
+```
+Then run `nipoppy process …` as usual.
+
+**To use singularity/apptainer:** same edit, with `"runner": "singularity"`.
+The image is pulled from Docker Hub on first run
+(`singularity run docker://freesurfer/freesurfer:7.4.1`), which needs network
+access on that node. Using a **local `.sif`** is not supported out of the box yet
+(the `--image` option would need to accept a `.sif` path).
+
+> [!NOTE]
+> Available runners: `local` (default), `docker`, `singularity`, `podman`, `auto`.
+> Container runners (`docker`/`singularity`/`podman`) require the license (already
+> set). `auto` prefers a container engine if one is installed and is **not yet
+> wired to forward the license/mounts** — prefer an explicit `docker`/`singularity`.
+> You can override the image with an `"image"` field in the invocation.
 
 ## Inputs & outputs
 
@@ -121,7 +168,7 @@ samseg_long/
 
 Registered images mirror the input extension (`.nii` or `.nii.gz`). The trackers
 mark a participant complete when `samseg_long/sub-<ID>/tp*/seg.mgz` (and, for
-two_step's first step, the `mri_robust_template/sub-<ID>/` template, registered
+samseg_long_twostep's first step, the `mri_robust_template/sub-<ID>/` template, registered
 and transform files) exist.
 
 ## Notes
@@ -146,7 +193,7 @@ nipoppy_samseg_long/
 ├── README.md
 ├── requirements.txt                # shared by both flavours
 ├── .gitignore
-├── one_step/                       # pipeline: samseg_long_onestep (1 step)
+├── samseg_long_onestep/                       # pipeline: samseg_long_onestep (1 step)
 │   ├── config.json
 │   ├── descriptor.json
 │   ├── invocation.json
@@ -154,7 +201,7 @@ nipoppy_samseg_long/
 │   ├── one_step_samseg_long.py
 │   ├── requirements.txt            # symlink -> ../requirements.txt
 │   └── README.md                   # step-by-step runbook
-└── two_step/                       # pipeline: samseg_long (2 steps)
+└── samseg_long_twostep/                       # pipeline: samseg_long_twostep (2 steps)
     ├── config.json
     ├── descriptor.json
     ├── invocation_robust.json

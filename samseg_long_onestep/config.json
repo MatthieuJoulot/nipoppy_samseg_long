@@ -11,5 +11,8 @@
         }
     ],
     "PIPELINE_TYPE": "processing",
-    "SCHEMA_VERSION": "1"
+    "SCHEMA_VERSION": "1",
+    "VARIABLES": {
+        "FREESURFER_LICENSE_FILE": "Path to a FreeSurfer license.txt file (required for container runners)."
+    }
 }

@@ -1,4 +1,4 @@
-# Instruction — one_step (`samseg_long_onestep`)
+# Instruction — samseg_long_onestep (`samseg_long_onestep`)
 
 Precise runbook to install and run this pipeline. Readable by a human or usable
 as-is by an LLM/agent to drive the processing. Follow the steps in order. Where a
@@ -14,12 +14,20 @@ images) → `run_samseg_long` (those images → SAMSEG longitudinal segmentation
 - Worker script: `one_step_samseg_long.py`, called as
   `python one_step_samseg_long.py <BIDS_DIR> <OUTPUT_DIR> <PARTICIPANT_ID>`
 
+> [!NOTE]
+> This runbook uses the default **`local`** runner (FreeSurfer on the host `$PATH`).
+> To run inside a **container** instead, add `"runner": "docker"` (or
+> `"singularity"`) to this bundle's installed `invocation.json`
+> (`<dataset>/pipelines/processing/samseg_long_onestep-1.0.0/invocation.json`).
+> The license is already provided via `FREESURFER_LICENSE_FILE`. See the
+> top-level README's "Runner backends" section for details.
+
 ---
 
 ## 0. Variables to set
 
 ```bash
-BUNDLE=/ABS/PATH/TO/nipoppy_samseg_long/one_step   # this folder
+BUNDLE=/ABS/PATH/TO/nipoppy_samseg_long/samseg_long_onestep   # this folder
 DATASET=/ABS/PATH/TO/nipoppy_dataset               # an initialized nipoppy dataset root
 PARTICIPANT=SUB01                                  # participant label, with or without "sub-"
 ```
@@ -71,7 +79,7 @@ ls "$DATASET"/bids/sub-${PARTICIPANT#sub-}/ses-*/anat/*_T1w.nii.gz | wc -l
 pip install -r "$BUNDLE/../requirements.txt"
 ```
 
-(`requirements.txt` lives at the repository root, shared with `two_step`.)
+(`requirements.txt` lives at the repository root, shared with `samseg_long_twostep`.)
 
 ---
 
@@ -124,11 +132,11 @@ setsid bash -c '
   nipoppy process --dataset "'"$DATASET"'" \
     --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
     --participant-id "'"$PARTICIPANT"'"
-' > "$DATASET/one_step_${PARTICIPANT}.log" 2>&1 < /dev/null &
-echo "started; log: $DATASET/one_step_${PARTICIPANT}.log"
+' > "$DATASET/samseg_long_onestep_${PARTICIPANT}.log" 2>&1 < /dev/null &
+echo "started; log: $DATASET/samseg_long_onestep_${PARTICIPANT}.log"
 ```
 
-Watch progress: `tail -f "$DATASET/one_step_${PARTICIPANT}.log"`.
+Watch progress: `tail -f "$DATASET/samseg_long_onestep_${PARTICIPANT}.log"`.
 The run is finished when the log contains `Ran for 1 out of 1`.
 
 ---
