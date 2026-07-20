@@ -1,5 +1,5 @@
 {
-    "NAME": "samseg_long_onestep",
+    "NAME": "samseg_long",
     "VERSION": "1.0.0",
     "STEPS": [
         {

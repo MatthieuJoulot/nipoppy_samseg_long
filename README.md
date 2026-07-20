@@ -19,7 +19,7 @@ things:
 
 | Directory | Pipeline (`NAME`) | Steps | Worker script | When to use |
 |:---------:|:-----------------:|:-----:|:-------------:|:-----------:|
-| [`samseg_long_onestep/`](samseg_long_onestep) | `samseg_long_onestep` | 1 | `one_step_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
+| [`samseg_long_onestep/`](samseg_long_onestep) | `samseg_long` | 1 | `one_step_samseg_long.py` | Simplest — a single `nipoppy process` call runs both tools back-to-back per participant. |
 | [`samseg_long_twostep/`](samseg_long_twostep) | `samseg_long_twostep` | 2 | `two_step_samseg_long.py` | Two steps, `robust_template` then `samseg_long` — run and track the template and the segmentation separately (e.g. inspect templates before segmenting, or parallelise differently). |
 
 Both produce identical outputs and share the same fixes (see [Notes](#notes)).
@@ -76,11 +76,11 @@ nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/samseg_
 ### samseg_long_onestep — single step
 ```bash
 nipoppy process --dataset <dataset> \
-  --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
+  --pipeline samseg_long --pipeline-version 1.0.0 \
   --participant-id <ID>          # optional; omit to run all participants
 
 nipoppy track-processing --dataset <dataset> \
-  --pipeline samseg_long_onestep --pipeline-version 1.0.0
+  --pipeline samseg_long --pipeline-version 1.0.0
 ```
 
 ### samseg_long_twostep — two steps (run in order)
@@ -116,7 +116,7 @@ variable you set at install), so switching runners needs no extra license step.
 image is pulled automatically on first run, or `docker pull` it), then add
 `"runner": "docker"` to the invocation(s):
 
-- `samseg_long_onestep`: `<dataset>/pipelines/processing/samseg_long_onestep-1.0.0/invocation.json`
+- `samseg_long`: `<dataset>/pipelines/processing/samseg_long-1.0.0/invocation.json`
 - `samseg_long_twostep`: **both** `invocation_robust.json` **and** `invocation_samseg.json`
   under `<dataset>/pipelines/processing/samseg_long_twostep-1.0.0/`
 
@@ -192,7 +192,7 @@ nipoppy_samseg_long/
 ├── README.md
 ├── requirements.txt                # shared by both flavours
 ├── .gitignore
-├── samseg_long_onestep/                       # pipeline: samseg_long_onestep (1 step)
+├── samseg_long_onestep/                       # pipeline: samseg_long (1 step)
 │   ├── config.json
 │   ├── descriptor.json
 │   ├── invocation.json

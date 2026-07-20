@@ -1,4 +1,4 @@
-# Instruction — samseg_long_onestep (`samseg_long_onestep`)
+# Instruction — samseg_long_onestep (`samseg_long`)
 
 Precise runbook to install and run this pipeline. Readable by a human or usable
 as-is by an LLM/agent to drive the processing. Follow the steps in order. Where a
@@ -8,7 +8,7 @@ This pipeline runs, **once per participant, in a single nipoppy step**:
 `mri_robust_template` (BIDS T1w → unbiased longitudinal template + registered
 images) → `run_samseg_long` (those images → SAMSEG longitudinal segmentation).
 
-- Pipeline `NAME`: **`samseg_long_onestep`**
+- Pipeline `NAME`: **`samseg_long`**
 - Pipeline `VERSION`: **`1.0.0`**
 - Steps: **1** (default step; do **not** pass `--pipeline-step`)
 - Worker script: `one_step_samseg_long.py`, called as
@@ -18,7 +18,7 @@ images) → `run_samseg_long` (those images → SAMSEG longitudinal segmentation
 > This runbook uses the default **`local`** runner (FreeSurfer on the host `$PATH`).
 > To run inside a **container** instead, add `"runner": "docker"` (or
 > `"singularity"`) to this bundle's installed `invocation.json`
-> (`<dataset>/pipelines/processing/samseg_long_onestep-1.0.0/invocation.json`).
+> (`<dataset>/pipelines/processing/samseg_long-1.0.0/invocation.json`).
 > The license is already provided via `FREESURFER_LICENSE_FILE`. See the
 > top-level README's "Runner backends" section for details.
 
@@ -103,7 +103,7 @@ PY
 
 ```bash
 nipoppy pipeline install --dataset "$DATASET" "$BUNDLE" --assume-yes
-nipoppy pipeline list --dataset "$DATASET"   # expect: samseg_long_onestep (1.0.0)
+nipoppy pipeline list --dataset "$DATASET"   # expect: samseg_long (1.0.0)
 ```
 
 ---
@@ -112,12 +112,12 @@ nipoppy pipeline list --dataset "$DATASET"   # expect: samseg_long_onestep (1.0.
 
 ```bash
 nipoppy process --dataset "$DATASET" \
-  --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
+  --pipeline samseg_long --pipeline-version 1.0.0 \
   --participant-id "$PARTICIPANT" --simulate
 ```
 
 Expect a "Generated Command" of the form:
-`python <DATASET>/pipelines/processing/samseg_long_onestep-1.0.0/one_step_samseg_long.py <bids> <output> sub-<PARTICIPANT>`
+`python <DATASET>/pipelines/processing/samseg_long-1.0.0/one_step_samseg_long.py <bids> <output> sub-<PARTICIPANT>`
 and `--no-container`.
 
 ---
@@ -130,7 +130,7 @@ so a dropped shell/SSH session does not kill it:
 ```bash
 setsid bash -c '
   nipoppy process --dataset "'"$DATASET"'" \
-    --pipeline samseg_long_onestep --pipeline-version 1.0.0 \
+    --pipeline samseg_long --pipeline-version 1.0.0 \
     --participant-id "'"$PARTICIPANT"'"
 ' > "$DATASET/samseg_long_onestep_${PARTICIPANT}.log" 2>&1 < /dev/null &
 echo "started; log: $DATASET/samseg_long_onestep_${PARTICIPANT}.log"
@@ -144,13 +144,13 @@ The run is finished when the log contains `Ran for 1 out of 1`.
 ## 7. Verify success
 
 ```bash
-OUT="$DATASET/derivatives/samseg_long_onestep/1.0.0/output"
+OUT="$DATASET/derivatives/samseg_long/1.0.0/output"
 SUB="sub-${PARTICIPANT#sub-}"
 ls "$OUT"/"$SUB"/mri_robust_template/"$SUB"_longTemplate*.mgz   # unbiased template
 ls "$OUT"/"$SUB"/samseg_long/tp*/seg.mgz                         # per-timepoint segmentations (>=2)
 
 nipoppy track-processing --dataset "$DATASET" \
-  --pipeline samseg_long_onestep --pipeline-version 1.0.0
+  --pipeline samseg_long --pipeline-version 1.0.0
 ```
 
 The pipeline is **complete** when `track-processing` reports each session as
