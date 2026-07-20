@@ -195,7 +195,7 @@ def make_registered(tmp_path):
     def _make(participant, sessions, tpl="1a.1b", ext=".nii.gz", root_name="out"):
         out = tmp_path / root_name
         # step 1 writes registered images under <out>/mri_robust_template/<sub>/
-        subdir = out / "mri_robust_template" / f"sub-{participant}"
+        subdir = out / f"sub-{participant}" / "mri_robust_template"
         subdir.mkdir(parents=True, exist_ok=True)
         for s in sessions:
             (subdir / f"sub-{participant}_ses-{s}_space-longTemplate{tpl}_T1w{ext}").touch()

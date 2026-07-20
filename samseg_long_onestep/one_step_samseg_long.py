@@ -188,7 +188,7 @@ def main(
 
     # Outputs are grouped by tool: OUTPUT_DIR/mri_robust_template/<sub>/ and
     # OUTPUT_DIR/samseg_long/<sub>/.
-    mrt_dir = out / "mri_robust_template" / bids_sub
+    mrt_dir = out / bids_sub / "mri_robust_template"
     mrt_dir.mkdir(parents=True, exist_ok=True)
 
     template_sessions = ".".join(sessions)  # e.g. 1a.1b.2
@@ -230,7 +230,7 @@ def main(
     # The registered images we just produced are the timepoint inputs (one
     # --timepoint each; the niwrap high-level wrapper can't emit repeated -t).
     print("=== Step 2: run_samseg_long ===")
-    samseg_out = f"{out / 'samseg_long' / bids_sub}/"
+    samseg_out = f"{out / bids_sub / 'samseg_long'}/"
     Path(samseg_out).mkdir(parents=True, exist_ok=True)
 
     # Cap thread counts: run_samseg_long's sklearn/GMM step uses OpenBLAS, which

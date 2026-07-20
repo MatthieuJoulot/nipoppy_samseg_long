@@ -145,7 +145,7 @@ def test_main_builds_expected_names_and_command(one_step, make_bids, tmp_path):
     assert os.path.basename(kw["template"]) == "sub-X_longTemplate1a.1b.mgz"
     # mri_robust_template outputs are grouped under mri_robust_template/<sub>/
     assert os.path.dirname(kw["template"]).endswith(
-        os.path.join("mri_robust_template", "sub-X"))
+        os.path.join("sub-X", "mri_robust_template"))
     assert [os.path.basename(p) for p in kw["mapmov"]] == [
         "sub-X_ses-1a_space-longTemplate1a.1b_T1w.nii.gz",
         "sub-X_ses-1b_space-longTemplate1a.1b_T1w.nii.gz",
@@ -164,7 +164,7 @@ def test_main_builds_expected_names_and_command(one_step, make_bids, tmp_path):
     assert tp_files == kw["mapmov"]          # timepoints are the step-1 registered images
     assert "--save-warp" in cargs and "--save-mesh" in cargs and "--save-posteriors" in cargs
     out_idx = cargs.index("--output") + 1
-    assert cargs[out_idx].endswith(f"samseg_long{os.sep}sub-X{os.sep}")
+    assert cargs[out_idx].endswith(f"sub-X{os.sep}samseg_long{os.sep}")
 
 
 def test_main_mirrors_nii_extension(one_step, make_bids, tmp_path):
