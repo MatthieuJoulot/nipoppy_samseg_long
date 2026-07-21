@@ -1,5 +1,7 @@
 # nipoppy_samseg_long
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21469881.svg)](https://doi.org/10.5281/zenodo.21469881)
+
 [Nipoppy](https://nipoppy.readthedocs.io) processing pipelines for **SAMSEG
 longitudinal** segmentation, wrapping the `mri_robust_template` and
 `run_samseg_long` tools through [niwrap](https://niwrap.dev/):
@@ -59,7 +61,10 @@ pip install -r requirements.txt
 # 2. Make sure your nipoppy dataset runs container-less: in <dataset>/global_config.json
 #      "CONTAINER_CONFIG": { "COMMAND": null, ... }
 
-# 3. Install whichever pipeline you want into your nipoppy dataset
+# 3. Install whichever pipeline you want into your nipoppy dataset.
+#    The one-step pipeline (samseg_long) is published on Zenodo — install by ID:
+nipoppy pipeline install --dataset <dataset> 21469881       # samseg_long (DOI 10.5281/zenodo.21469881)
+#    ...or install either bundle from this repo directly:
 nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/samseg_long_onestep
 # or
 nipoppy pipeline install --dataset <dataset> path/to/nipoppy_samseg_long/samseg_long_twostep
