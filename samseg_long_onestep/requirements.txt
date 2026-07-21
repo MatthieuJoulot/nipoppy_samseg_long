@@ -1,1 +1,8 @@
-../requirements.txt
+# Python dependencies for the worker scripts (one_step and two_step).
+#
+# Requires Python >= 3.11  (niwrap_freesurfer uses typing.NotRequired).
+# Install these into the Python environment from which you run `nipoppy`,
+# because the pipelines call `python` directly (container-less). See the README.
+niwrap==1.0.5
+niwrap_freesurfer==1.0.5
+styxdefs==0.7.0

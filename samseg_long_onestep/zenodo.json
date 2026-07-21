@@ -1,0 +1,13 @@
+{
+    "title": "samseg_long: a Nipoppy pipeline for FreeSurfer SAMSEG longitudinal segmentation",
+    "description": "A Nipoppy processing pipeline that runs the FreeSurfer longitudinal workflow per participant via niwrap: mri_robust_template builds an unbiased within-subject template and resamples each session into it, then run_samseg_long performs SAMSEG longitudinal segmentation. Sessions are auto-discovered from the BIDS tree. Source: https://github.com/MatthieuJoulot/nipoppy_samseg_long",
+    "creators": [
+        {
+            "person_or_org": {
+                "given_name": "Matthieu",
+                "family_name": "Joulot",
+                "type": "personal"
+            }
+        }
+    ]
+}
