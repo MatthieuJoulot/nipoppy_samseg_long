@@ -1,6 +1,7 @@
 # nipoppy_samseg_long
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21469881.svg)](https://doi.org/10.5281/zenodo.21469881)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [Nipoppy](https://nipoppy.readthedocs.io) processing pipelines for **SAMSEG
 longitudinal** segmentation, wrapping the `mri_robust_template` and
@@ -195,6 +196,7 @@ and transform files) exist.
 ```
 nipoppy_samseg_long/
 ├── README.md
+├── LICENSE                         # MIT
 ├── requirements.txt                # shared by both flavours
 ├── .gitignore
 ├── samseg_long_onestep/                       # pipeline: samseg_long (1 step)
@@ -228,6 +230,13 @@ niwrap nor FreeSurfer — only `pytest`:
 pip install -r requirements-dev.txt
 pytest
 ```
+
+## License
+
+Released under the [MIT License](LICENSE). Note this covers **this wrapper code
+only** — FreeSurfer (`mri_robust_template`, `run_samseg_long`) is distributed
+under its own [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/registration.html),
+which you must accept separately.
 
 ## Credit
 

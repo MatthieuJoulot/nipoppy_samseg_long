@@ -9,5 +9,10 @@
                 "type": "personal"
             }
         }
+    ],
+    "rights": [
+        {
+            "id": "mit"
+        }
     ]
 }
